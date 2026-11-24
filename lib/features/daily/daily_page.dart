@@ -8,12 +8,19 @@ import '../../core/utils/date_utils.dart';
 import '../../core/utils/responsive.dart';
 import '../../data/local/app_database.dart';
 import '../../shared/providers/app_providers.dart';
-import '../../shared/widgets/task_editor_dialog.dart';
+import '../../shared/widgets/google_brand_widgets.dart';
 import 'task_detail_panel.dart';
 
-/// 日计划视图：今日待办、P0-P3 优先级、标签筛选、目标溯源、昨日未完成一键顺延、移动端左/右滑手势
+/// Google Tasks / Google Fit 风格多彩日计划视图
 class DailyPage extends ConsumerWidget {
   const DailyPage({super.key});
+
+  String _greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return '早安，开启高效一天';
+    if (h < 18) return '午后好，保持专注节奏';
+    return '晚上好，复盘今日收获';
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,6 +33,7 @@ class DailyPage extends ConsumerWidget {
     final allTags = ref.watch(tagsStreamProvider).valueOrNull ?? [];
     final taskTagsMap = ref.watch(taskTagsMapProvider).valueOrNull ?? {};
     final activeSemester = ref.watch(activeSemesterProvider).valueOrNull;
+    final theme = Theme.of(context);
 
     final goalById = {for (final g in allGoals) g.id: g};
     final isToday = TermDateUtils.formatIsoDate(selectedDate) ==
@@ -41,122 +49,213 @@ class DailyPage extends ConsumerWidget {
       if (w >= 1) weekHint = '第 $w 教学周';
     }
 
+    final allDayTasks = tasksAsync.valueOrNull ?? [];
+    final doneAll = allDayTasks.where((t) => t.isCompleted).length;
+    final pendingAll = allDayTasks.length - doneAll;
+    final totalMinutes = allDayTasks
+        .where((t) => !t.isCompleted)
+        .fold<int>(0, (sum, t) => sum + (t.estimatedMinutes ?? 0));
+    final dayProgress =
+        allDayTasks.isEmpty ? 0.0 : doneAll / allDayTasks.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 顶部日期切换与快速添加栏
+        // 1. Google Material You 多彩日概览横幅（带 Google 四色圆环 + 胶囊指标）
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-          child: Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        isToday
-                            ? '今天'
-                            : '${selectedDate.month}月${selectedDate.day}日',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppTheme.tonalContainer(
+                context,
+                theme.colorScheme.primary,
+                lightAlpha: 24,
+                darkAlpha: 42,
+              ),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    GoogleProgressRing(
+                      progress: dayProgress,
+                      size: 62,
+                      strokeWidth: 6.5,
+                      centerChild: Text(
+                        allDayTasks.isEmpty
+                            ? '0%'
+                            : '${(dayProgress * 100).round()}%',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${selectedDate.month}/${selectedDate.day} ${TermDateUtils.weekdayShortCn(selectedDate.weekday)}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).hintColor,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (isToday)
+                            Text(
+                              _greeting(),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                      ),
-                      if (weekHint != null) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withAlpha(25),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            weekHint,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
+                          const SizedBox(height: 2),
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              Text(
+                                isToday
+                                    ? '今天 · ${selectedDate.month}月${selectedDate.day}日'
+                                    : '${selectedDate.month}月${selectedDate.day}日',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                TermDateUtils.weekdayShortCn(
+                                    selectedDate.weekday),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.hintColor,
                                   fontWeight: FontWeight.w600,
                                 ),
+                              ),
+                              if (weekHint != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.googlePurple.withAlpha(32),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    weekHint,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.googlePurple,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-              const Spacer(),
-              IconButton(
-                tooltip: '前一天',
-                onPressed: () => ref.read(selectedDateProvider.notifier).state =
-                    selectedDate.subtract(const Duration(days: 1)),
-                icon: const Icon(Icons.chevron_left_rounded),
-              ),
-              TextButton(
-                onPressed: () => ref.read(selectedDateProvider.notifier).state =
-                    TermDateUtils.dateOnly(DateTime.now()),
-                child: const Text('今天'),
-              ),
-              IconButton(
-                tooltip: '后一天',
-                onPressed: () => ref.read(selectedDateProvider.notifier).state =
-                    selectedDate.add(const Duration(days: 1)),
-                icon: const Icon(Icons.chevron_right_rounded),
-              ),
-              if (Responsive.isDesktop(context)) ...[
-                const SizedBox(width: 8),
-                FilledButton.icon(
-                  onPressed: () => TaskEditorDialog.show(
-                    context,
-                    initialScheduledDate:
-                        TermDateUtils.formatIsoDate(selectedDate),
-                  ),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('新建任务 (Ctrl+N)'),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              _StatBadge(
+                                icon: Icons.check_circle_rounded,
+                                label: '已完成 $doneAll',
+                                color: AppTheme.googleGreen,
+                              ),
+                              _StatBadge(
+                                icon: Icons.pending_actions_rounded,
+                                label: '待办 $pendingAll',
+                                color: AppTheme.googleBlue,
+                              ),
+                              if (totalMinutes > 0)
+                                _StatBadge(
+                                  icon: Icons.bolt_rounded,
+                                  label: '预计 $totalMinutes 分钟',
+                                  color: const Color(0xFFE37400),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 胶囊日期切换器
+                    Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            tooltip: '前一天',
+                            onPressed: () =>
+                                ref.read(selectedDateProvider.notifier).state =
+                                    selectedDate.subtract(
+                                        const Duration(days: 1)),
+                            icon: const Icon(Icons.chevron_left_rounded),
+                          ),
+                          if (!isToday)
+                            TextButton(
+                              onPressed: () => ref
+                                  .read(selectedDateProvider.notifier)
+                                  .state = TermDateUtils.dateOnly(
+                                DateTime.now(),
+                              ),
+                              child: const Text('今天'),
+                            ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            tooltip: '后一天',
+                            onPressed: () =>
+                                ref.read(selectedDateProvider.notifier).state =
+                                    selectedDate.add(const Duration(days: 1)),
+                            icon: const Icon(Icons.chevron_right_rounded),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ],
+            ),
           ),
         ),
 
-        // 昨日/往期未完成顺延横幅
+        // 2. Google Assistant 智能建议风格：往期未完成一键顺延卡片
         if (isToday && overdueTasks.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.orange.withAlpha(24),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.withAlpha(80)),
+                color: AppTheme.tonalContainer(
+                  context,
+                  AppTheme.googleYellow,
+                  lightAlpha: 38,
+                  darkAlpha: 48,
+                ),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.history_rounded,
-                      color: Colors.orange, size: 20),
-                  const SizedBox(width: 10),
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AppTheme.googleYellow.withAlpha(55),
+                    child: const Icon(
+                      Icons.auto_fix_high_rounded,
+                      color: Color(0xFFB06000),
+                      size: 19,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      '昨日及往期还有 ${overdueTasks.length} 项未完成任务',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
+                      '有 ${overdueTasks.length} 项昨日及往期计划尚未完成',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   FilledButton.tonal(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.googleYellow.withAlpha(65),
+                    ),
                     onPressed: () async {
                       final moved = await ref
                           .read(taskRepositoryProvider)
@@ -167,26 +266,38 @@ class DailyPage extends ConsumerWidget {
                         );
                       }
                     },
-                    child: const Text('一键顺延至今天'),
+                    child: const Text(
+                      '顺延至今天',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
 
-        // 标签筛选条（移动端直接展示，桌面端也可快速切换）
+        // 3. 多彩胶囊标签筛选栏
         if (allTags.isNotEmpty)
           SizedBox(
-            height: 40,
+            height: 42,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.only(right: 8),
                   child: ChoiceChip(
                     label: const Text('全部'),
                     selected: selectedTagId == null,
+                    selectedColor: theme.colorScheme.primary.withAlpha(36),
+                    labelStyle: TextStyle(
+                      fontWeight: selectedTagId == null
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: selectedTagId == null
+                          ? theme.colorScheme.primary
+                          : null,
+                    ),
                     onSelected: (_) =>
                         ref.read(selectedTagFilterProvider.notifier).state =
                             null,
@@ -196,11 +307,20 @@ class DailyPage extends ConsumerWidget {
                   final color = AppTheme.parseHex(tag.colorHex);
                   final selected = selectedTagId == tag.id;
                   return Padding(
-                    padding: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
+                      avatar: CircleAvatar(radius: 5, backgroundColor: color),
                       label: Text(tag.name),
                       selected: selected,
-                      selectedColor: color.withAlpha(40),
+                      selectedColor: color.withAlpha(42),
+                      side: BorderSide(
+                        color: selected ? color : color.withAlpha(70),
+                      ),
+                      labelStyle: TextStyle(
+                        color: selected ? color : null,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w500,
+                      ),
                       onSelected: (_) => ref
                           .read(selectedTagFilterProvider.notifier)
                           .state = selected ? null : tag.id,
@@ -210,9 +330,9 @@ class DailyPage extends ConsumerWidget {
               ],
             ),
           ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
 
-        // 任务主列表
+        // 4. Google Keep / Tasks 风格多彩任务列表
         Expanded(
           child: tasksAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -230,71 +350,53 @@ class DailyPage extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.check_circle_outline_rounded,
-                        size: 52,
-                        color: Theme.of(context).hintColor.withAlpha(110),
-                      ),
-                      const SizedBox(height: 12),
+                      const GoogleBrandLogo(size: 52),
+                      const SizedBox(height: 16),
                       Text(
-                        '今天暂无待办计划',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Theme.of(context).hintColor,
-                            ),
+                        '清清爽爽，今日暂无待办',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         Responsive.isDesktop(context)
-                            ? '按 Ctrl+N 或点击右上角按钮添加今日任务'
-                            : '点击右下角 + 添加今日任务',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).hintColor,
-                            ),
+                            ? '点击左上角彩色「+ 新建任务」或按 Ctrl+N 开启计划'
+                            : '点击右下角彩色「+ 新建」按钮添加今日计划',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.hintColor,
+                        ),
                       ),
                     ],
                   ),
                 );
               }
 
-              final doneCount = filtered.where((t) => t.isCompleted).length;
               return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 88),
-                itemCount: filtered.length + 1,
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
+                itemCount: filtered.length,
                 itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Text(
-                        '完成进度：$doneCount / ${filtered.length}',
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              color: Theme.of(context).hintColor,
-                            ),
-                      ),
-                    );
-                  }
-
-                  final task = filtered[index - 1];
+                  final task = filtered[index];
                   final tags = taskTagsMap[task.id] ?? [];
                   final linkedGoal =
                       task.goalId != null ? goalById[task.goalId] : null;
                   final isSelected = selectedTaskId == task.id;
 
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: 10),
                     child: Slidable(
                       key: ValueKey(task.id),
-                      // Android / 触控右滑完成
                       startActionPane: ActionPane(
                         motion: const DrawerMotion(),
-                        extentRatio: 0.25,
+                        extentRatio: 0.26,
                         children: [
                           SlidableAction(
                             onPressed: (_) => ref
                                 .read(taskRepositoryProvider)
                                 .toggleComplete(task.id),
-                            backgroundColor: const Color(0xFF10B981),
+                            backgroundColor: AppTheme.googleGreen,
                             foregroundColor: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(20),
                             icon: task.isCompleted
                                 ? Icons.undo_rounded
                                 : Icons.check_rounded,
@@ -302,7 +404,6 @@ class DailyPage extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      // 左滑顺延 / 删除
                       endActionPane: ActionPane(
                         motion: const DrawerMotion(),
                         extentRatio: 0.48,
@@ -311,25 +412,25 @@ class DailyPage extends ConsumerWidget {
                             onPressed: (_) => ref
                                 .read(taskRepositoryProvider)
                                 .postponeTaskByOneDay(task.id),
-                            backgroundColor: const Color(0xFFF59E0B),
+                            backgroundColor: const Color(0xFFF9AB00),
                             foregroundColor: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            icon: Icons.next_plan_outlined,
+                            borderRadius: BorderRadius.circular(20),
+                            icon: Icons.next_plan_rounded,
                             label: '顺延',
                           ),
                           SlidableAction(
                             onPressed: (_) => ref
                                 .read(taskRepositoryProvider)
                                 .softDeleteTask(task.id),
-                            backgroundColor: const Color(0xFFEF4444),
+                            backgroundColor: AppTheme.googleRed,
                             foregroundColor: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            icon: Icons.delete_outline,
+                            borderRadius: BorderRadius.circular(20),
+                            icon: Icons.delete_outline_rounded,
                             label: '删除',
                           ),
                         ],
                       ),
-                      child: _TaskCard(
+                      child: _GoogleTaskCard(
                         task: task,
                         tags: tags,
                         linkedGoal: linkedGoal,
@@ -345,6 +446,11 @@ class DailyPage extends ConsumerWidget {
                               context: context,
                               isScrollControlled: true,
                               useSafeArea: true,
+                              showDragHandle: true,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(28)),
+                              ),
                               builder: (_) => SizedBox(
                                 height: MediaQuery.sizeOf(context).height * 0.85,
                                 child: TaskDetailPanel(
@@ -368,8 +474,46 @@ class DailyPage extends ConsumerWidget {
   }
 }
 
-class _TaskCard extends StatelessWidget {
-  const _TaskCard({
+class _StatBadge extends StatelessWidget {
+  const _StatBadge({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoogleTaskCard extends StatelessWidget {
+  const _GoogleTaskCard({
     required this.task,
     required this.tags,
     required this.linkedGoal,
@@ -389,52 +533,69 @@ class _TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final priority = TaskPriority.fromInt(task.priority);
     final theme = Theme.of(context);
+    final cardAccent = linkedGoal != null
+        ? AppTheme.parseHex(linkedGoal!.colorHex)
+        : priority.color;
+
+    final cardBg = task.isCompleted
+        ? theme.colorScheme.surfaceContainerLowest.withAlpha(180)
+        : AppTheme.tonalContainer(
+            context,
+            cardAccent,
+            lightAlpha: 16,
+            darkAlpha: 28,
+          );
 
     return Material(
-      color: theme.colorScheme.surfaceContainerLowest,
-      borderRadius: BorderRadius.circular(12),
+      color: cardBg,
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isSelected
-                  ? theme.colorScheme.primary
-                  : theme.dividerColor,
-              width: isSelected ? 1.5 : 1,
+                  ? cardAccent
+                  : cardAccent.withAlpha(task.isCompleted ? 25 : 55),
+              width: isSelected ? 2 : 1,
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 极简圆形勾选框（按 P0-P3 着色）
+              // 彩色圆环完成按钮
               InkWell(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(999),
                 onTap: onToggle,
                 child: Padding(
                   padding: const EdgeInsets.all(2),
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    width: 21,
-                    height: 21,
+                    duration: const Duration(milliseconds: 200),
+                    width: 23,
+                    height: 23,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: task.isCompleted ? priority.color : Colors.transparent,
+                      color: task.isCompleted
+                          ? AppTheme.googleGreen
+                          : priority.color.withAlpha(24),
                       border: Border.all(
-                        color: priority.color,
-                        width: 1.8,
+                        color: task.isCompleted
+                            ? AppTheme.googleGreen
+                            : priority.color,
+                        width: 2.2,
                       ),
                     ),
                     child: task.isCompleted
-                        ? const Icon(Icons.check, size: 14, color: Colors.white)
+                        ? const Icon(Icons.check_rounded,
+                            size: 15, color: Colors.white)
                         : null,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 13),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,7 +606,7 @@ class _TaskCard extends StatelessWidget {
                           child: Text(
                             task.title,
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                               decoration: task.isCompleted
                                   ? TextDecoration.lineThrough
                                   : null,
@@ -453,60 +614,71 @@ class _TaskCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                              horizontal: 9, vertical: 3),
                           decoration: BoxDecoration(
-                            color: priority.color.withAlpha(28),
-                            borderRadius: BorderRadius.circular(6),
+                            color: priority.color.withAlpha(32),
+                            borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
                             priority.code,
                             style: TextStyle(
                               color: priority.color,
                               fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    if (task.notes.isNotEmpty && !task.isCompleted) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        task.notes,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.hintColor,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
+                      spacing: 6,
+                      runSpacing: 6,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         if (linkedGoal != null)
-                          _MetaPill(
-                            icon: Icons.flag_outlined,
+                          _ColorfulPill(
+                            icon: Icons.flag_rounded,
                             text:
-                                '${GoalLevel.fromString(linkedGoal!.level).label}: ${linkedGoal!.title}',
+                                '${GoalLevel.fromString(linkedGoal!.level).label} · ${linkedGoal!.title}',
                             color: AppTheme.parseHex(linkedGoal!.colorHex),
                           ),
                         if (task.estimatedMinutes != null)
-                          _MetaPill(
-                            icon: Icons.timer_outlined,
-                            text: '${task.estimatedMinutes}m',
-                            color: theme.hintColor,
+                          _ColorfulPill(
+                            icon: Icons.schedule_rounded,
+                            text: '${task.estimatedMinutes} 分钟',
+                            color: AppTheme.googleTeal,
                           ),
                         if (task.dueAt != null)
-                          _MetaPill(
-                            icon: Icons.alarm_outlined,
+                          _ColorfulPill(
+                            icon: Icons.notifications_active_rounded,
                             text:
                                 '${task.dueAt!.toLocal().hour.toString().padLeft(2, '0')}:${task.dueAt!.toLocal().minute.toString().padLeft(2, '0')}',
-                            color: Colors.redAccent,
+                            color: AppTheme.googleRed,
                           ),
                         if (task.postponeCount > 0)
-                          _MetaPill(
+                          _ColorfulPill(
                             icon: Icons.fast_forward_rounded,
-                            text: '顺延×${task.postponeCount}',
-                            color: Colors.orange,
+                            text: '顺延 ×${task.postponeCount}',
+                            color: const Color(0xFFE37400),
                           ),
                         ...tags.map(
-                          (tg) => _MetaPill(
-                            icon: Icons.tag_rounded,
+                          (tg) => _ColorfulPill(
+                            icon: Icons.label_rounded,
                             text: tg.name,
                             color: AppTheme.parseHex(tg.colorHex),
                           ),
@@ -524,8 +696,8 @@ class _TaskCard extends StatelessWidget {
   }
 }
 
-class _MetaPill extends StatelessWidget {
-  const _MetaPill({
+class _ColorfulPill extends StatelessWidget {
+  const _ColorfulPill({
     required this.icon,
     required this.text,
     required this.color,
@@ -538,10 +710,10 @@ class _MetaPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withAlpha(22),
-        borderRadius: BorderRadius.circular(6),
+        color: color.withAlpha(28),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -549,14 +721,14 @@ class _MetaPill extends StatelessWidget {
           Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 160),
+            constraints: const BoxConstraints(maxWidth: 170),
             child: Text(
               text,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
                 color: color,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),

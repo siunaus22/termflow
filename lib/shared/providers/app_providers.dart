@@ -61,6 +61,23 @@ final themeModeProvider =
   return ThemeModeNotifier(ref.watch(appConfigStoreProvider));
 });
 
+class ThemeSeedNotifier extends StateNotifier<GoogleThemeSeed> {
+  ThemeSeedNotifier(this._store)
+      : super(GoogleThemeSeed.fromKey(_store.themeSeed));
+
+  final AppConfigStore _store;
+
+  Future<void> setSeed(GoogleThemeSeed seed) async {
+    state = seed;
+    await _store.setThemeSeed(seed.key);
+  }
+}
+
+final themeSeedProvider =
+    StateNotifierProvider<ThemeSeedNotifier, GoogleThemeSeed>((ref) {
+  return ThemeSeedNotifier(ref.watch(appConfigStoreProvider));
+});
+
 // ============================================================================
 // Supabase 连接与认证管理器（支持在设置页动态填写/更换 URL 与 Anon Key）
 // ============================================================================

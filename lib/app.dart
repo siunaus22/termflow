@@ -12,12 +12,13 @@ class TermFlowApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final themeSeed = ref.watch(themeSeedProvider);
 
     return MaterialApp(
       title: 'TermFlow',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: AppTheme.light(seedColor: themeSeed.seedColor),
+      darkTheme: AppTheme.dark(seedColor: themeSeed.seedColor),
       themeMode: themeMode,
       locale: const Locale('zh', 'CN'),
       supportedLocales: const [

@@ -39,10 +39,10 @@ class AppDatabase extends _$AppDatabase {
     final now = DateTime.now().toUtc();
 
     final defaultTags = [
-      ('课程', '#4F6BED', 'book'),
-      ('项目', '#0EA5E9', 'code'),
-      ('竞赛', '#F59E0B', 'trophy'),
-      ('生活', '#10B981', 'home'),
+      ('课程', '#4285F4', 'book'),
+      ('项目', '#12B5CB', 'code'),
+      ('竞赛', '#F9AB00', 'trophy'),
+      ('生活', '#34A853', 'home'),
     ];
 
     await batch((b) {

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_enums.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/local/app_database.dart';
 import '../providers/app_providers.dart';
+import 'google_brand_widgets.dart';
 
-/// 新建 / 编辑 学期 / 月度 / 周目标弹窗
+/// Material 3 多彩风格 学期 / 月度 / 周目标编辑弹窗
 class GoalEditorDialog extends ConsumerStatefulWidget {
   const GoalEditorDialog({
     super.key,
@@ -146,10 +148,25 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
         .toList();
 
     return AlertDialog(
-      title: Text(
-        widget.existing == null
-            ? '新建${widget.level.label}'
-            : '编辑${widget.level.label}',
+      title: Row(
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: widget.level.accentColor.withAlpha(32),
+            child: Icon(
+              Icons.flag_rounded,
+              size: 18,
+              color: widget.level.accentColor,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            widget.existing == null
+                ? '新建${widget.level.label}'
+                : '编辑${widget.level.label}',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
       content: SizedBox(
         width: 440,
@@ -158,14 +175,16 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const GoogleFourColorBar(height: 3),
+              const SizedBox(height: 16),
               TextField(
                 controller: _titleController,
                 autofocus: true,
                 decoration: InputDecoration(
                   hintText: switch (widget.level) {
-                    GoalLevel.semester => '例如：GPA 保持 3.9+ / 完成毕业设计原型',
-                    GoalLevel.monthly => '例如：11月完成算法刷题 60 道',
-                    GoalLevel.weekly => '例如：本周完成数据结构树与图专题',
+                    GoalLevel.semester => '例如：GPA 保持 3.9+ / 完成毕设原型',
+                    GoalLevel.monthly => '例如：本月完成算法刷题 60 道',
+                    GoalLevel.weekly => '例如：本周攻克动态规划与图论专题',
                   },
                 ),
               ),
@@ -174,33 +193,49 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
                 controller: _descController,
                 maxLines: 2,
                 decoration: const InputDecoration(
-                  hintText: 'OKR 关键结果 / 验收标准（可选）',
+                  hintText: 'OKR 关键结果 / 衡量指标（可选）',
                 ),
               ),
-              const SizedBox(height: 14),
-              Text('目标类别', style: Theme.of(context).textTheme.labelMedium),
-              const SizedBox(height: 6),
+              const SizedBox(height: 16),
+              Text(
+                '多彩目标维度',
+                style: Theme.of(context)
+                    .textTheme
+                    .labelMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
-                runSpacing: 6,
+                runSpacing: 8,
                 children: GoalCategory.values.map((c) {
                   final selected = _category == c;
                   return ChoiceChip(
+                    avatar: Icon(c.icon, size: 16, color: c.color),
                     label: Text(c.label),
                     selected: selected,
-                    selectedColor: c.color.withAlpha(45),
+                    selectedColor: c.color.withAlpha(42),
+                    side: BorderSide(
+                      color: selected ? c.color : c.color.withAlpha(80),
+                    ),
                     labelStyle: TextStyle(
-                      color: selected ? c.color : null,
-                      fontWeight: selected ? FontWeight.w600 : null,
+                      color: c.color,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                     ),
                     onSelected: (_) => setState(() => _category = c),
                   );
                 }).toList(),
               ),
               if (allowedParentLevels.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                Text('关联上级目标', style: Theme.of(context).textTheme.labelMedium),
-                const SizedBox(height: 6),
+                const SizedBox(height: 16),
+                Text(
+                  '关联上级目标',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
                 DropdownButtonFormField<String?>(
                   initialValue: parentCandidates.any((g) => g.id == _parentGoalId)
                       ? _parentGoalId
@@ -225,15 +260,21 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
                   onChanged: (v) => setState(() => _parentGoalId = v),
                 ),
               ],
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  Text('进度计算方式', style: Theme.of(context).textTheme.labelMedium),
+                  Text(
+                    '进度模式',
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
                   const Spacer(),
                   SegmentedButton<String>(
                     segments: const [
                       ButtonSegment(value: 'auto', label: Text('自动联动')),
-                      ButtonSegment(value: 'manual', label: Text('手动进度')),
+                      ButtonSegment(value: 'manual', label: Text('手动滑块')),
                     ],
                     selected: {_progressMode},
                     onSelectionChanged: (s) =>
@@ -248,10 +289,17 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
                     Expanded(
                       child: Slider(
                         value: _manualProgress,
+                        activeColor: _category.color,
                         onChanged: (v) => setState(() => _manualProgress = v),
                       ),
                     ),
-                    Text('${(_manualProgress * 100).round()}%'),
+                    Text(
+                      '${(_manualProgress * 100).round()}%',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: _category.color,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -262,7 +310,7 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
       actions: [
         if (widget.existing != null)
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.googleRed),
             onPressed: _saving
                 ? null
                 : () async {

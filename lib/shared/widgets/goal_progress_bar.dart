@@ -5,7 +5,7 @@ class GoalProgressBar extends StatelessWidget {
     super.key,
     required this.progress,
     required this.color,
-    this.height = 7,
+    this.height = 8,
     this.showPercentage = true,
   });
 
@@ -24,23 +24,32 @@ class GoalProgressBar extends StatelessWidget {
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(height),
-            child: LinearProgressIndicator(
-              value: clamped,
-              minHeight: height,
-              backgroundColor: color.withAlpha(36),
-              valueColor: AlwaysStoppedAnimation<Color>(color),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: clamped),
+              duration: const Duration(milliseconds: 360),
+              curve: Curves.easeOutCubic,
+              builder: (context, val, _) => LinearProgressIndicator(
+                value: val,
+                minHeight: height,
+                backgroundColor: color.withAlpha(38),
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
             ),
           ),
         ),
         if (showPercentage) ...[
           const SizedBox(width: 10),
-          SizedBox(
-            width: 38,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withAlpha(28),
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Text(
               '$pct%',
               textAlign: TextAlign.right,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: color,
                   ),
             ),
