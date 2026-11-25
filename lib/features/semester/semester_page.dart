@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -249,10 +247,7 @@ class SemesterPage extends ConsumerWidget {
                           M3ScallopBadge(
                             size: 48,
                             color: tokens.glassPill,
-                            child: const GeminiSparkleIcon(
-                              size: 20,
-                              animate: true,
-                            ),
+                            child: const GeminiSparkleIcon(size: 20),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -387,108 +382,105 @@ class SemesterPage extends ConsumerWidget {
 
     await showDialog<void>(
       context: context,
-      barrierColor: Colors.black.withAlpha(110),
-      builder: (ctx) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: StatefulBuilder(
-          builder: (ctx, setState) => AlertDialog(
-            title: Text(existing == null ? '新建学期' : '编辑学期周期'),
-            content: SizedBox(
-              width: 400,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: '学期名称',
-                      hintText: '如：2026-2027 第一学期',
-                    ),
+      barrierColor: Colors.black.withAlpha(132),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: Text(existing == null ? '新建学期' : '编辑学期周期'),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: '学期名称',
+                    hintText: '如：2026-2027 第一学期',
                   ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: ctx,
-                              initialDate: startDate,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2035),
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                startDate = picked;
-                                if (endDate.isBefore(startDate)) {
-                                  endDate =
-                                      startDate.add(const Duration(days: 120));
-                                }
-                              });
-                            }
-                          },
-                          child: Text(TermDateUtils.formatIsoDate(startDate)),
-                        ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('至'),
-                      ),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: ctx,
-                              initialDate: endDate,
-                              firstDate: startDate,
-                              lastDate: DateTime(2035),
-                            );
-                            if (picked != null) {
-                              setState(() => endDate = picked);
-                            }
-                          },
-                          child: Text(TermDateUtils.formatIsoDate(endDate)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: GeminiTokens.cobaltViolet,
-                  foregroundColor: Colors.white,
                 ),
-                onPressed: () async {
-                  final name = nameController.text.trim();
-                  if (name.isEmpty) return;
-                  final repo = ref.read(semesterRepositoryProvider);
-                  if (existing == null) {
-                    await repo.createSemester(
-                      name: name,
-                      startDate: TermDateUtils.formatIsoDate(startDate),
-                      endDate: TermDateUtils.formatIsoDate(endDate),
-                    );
-                  } else {
-                    await repo.updateSemester(
-                      id: existing.id,
-                      name: name,
-                      startDate: TermDateUtils.formatIsoDate(startDate),
-                      endDate: TermDateUtils.formatIsoDate(endDate),
-                    );
-                  }
-                  if (ctx.mounted) Navigator.of(ctx).pop();
-                },
-                child: const Text('保存'),
-              ),
-            ],
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: ctx,
+                            initialDate: startDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2035),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              startDate = picked;
+                              if (endDate.isBefore(startDate)) {
+                                endDate =
+                                    startDate.add(const Duration(days: 120));
+                              }
+                            });
+                          }
+                        },
+                        child: Text(TermDateUtils.formatIsoDate(startDate)),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('至'),
+                    ),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: ctx,
+                            initialDate: endDate,
+                            firstDate: startDate,
+                            lastDate: DateTime(2035),
+                          );
+                          if (picked != null) {
+                            setState(() => endDate = picked);
+                          }
+                        },
+                        child: Text(TermDateUtils.formatIsoDate(endDate)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: GeminiTokens.cobaltViolet,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                final name = nameController.text.trim();
+                if (name.isEmpty) return;
+                final repo = ref.read(semesterRepositoryProvider);
+                if (existing == null) {
+                  await repo.createSemester(
+                    name: name,
+                    startDate: TermDateUtils.formatIsoDate(startDate),
+                    endDate: TermDateUtils.formatIsoDate(endDate),
+                  );
+                } else {
+                  await repo.updateSemester(
+                    id: existing.id,
+                    name: name,
+                    startDate: TermDateUtils.formatIsoDate(startDate),
+                    endDate: TermDateUtils.formatIsoDate(endDate),
+                  );
+                }
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+              child: const Text('保存'),
+            ),
+          ],
         ),
       ),
     );

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -371,10 +369,7 @@ class DailyPage extends ConsumerWidget {
                               M3ScallopBadge(
                                 size: 48,
                                 color: tokens.glassPill,
-                                child: const GeminiSparkleIcon(
-                                  size: 20,
-                                  animate: true,
-                                ),
+                                child: const GeminiSparkleIcon(size: 20),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
@@ -480,18 +475,14 @@ class DailyPage extends ConsumerWidget {
                                         isScrollControlled: true,
                                         useSafeArea: true,
                                         showDragHandle: true,
-                                        builder: (_) => BackdropFilter(
-                                          filter: ImageFilter.blur(
-                                              sigmaX: 20, sigmaY: 20),
-                                          child: SizedBox(
-                                            height: MediaQuery.sizeOf(context)
-                                                    .height *
-                                                0.85,
-                                            child: TaskDetailPanel(
-                                              taskId: task.id,
-                                              onClose: () =>
-                                                  Navigator.of(context).pop(),
-                                            ),
+                                        builder: (_) => SizedBox(
+                                          height: MediaQuery.sizeOf(context)
+                                                  .height *
+                                              0.85,
+                                          child: TaskDetailPanel(
+                                            taskId: task.id,
+                                            onClose: () =>
+                                                Navigator.of(context).pop(),
                                           ),
                                         ),
                                       );

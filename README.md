@@ -7,7 +7,7 @@
 
 ---
 
-## ✨ 界面预览（v1.2.0 Gemini Fluid Edition）
+## ✨ 界面预览（v1.2.1 Gemini Fluid Edition）
 
 | 桌面端 · Gemini 深色模式（主推） | 桌面端 · 浅色雾面模式 |
 | :---: | :---: |

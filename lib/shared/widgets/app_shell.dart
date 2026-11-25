@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,8 +67,8 @@ class AppShell extends ConsumerWidget {
   void _openAccountSettings(BuildContext context) {
     Navigator.of(context).push(
       PageRouteBuilder<void>(
-        opaque: false,
-        transitionDuration: GeminiTokens.mediumDuration,
+        opaque: true,
+        transitionDuration: GeminiTokens.fastDuration,
         reverseTransitionDuration: GeminiTokens.fastDuration,
         pageBuilder: (_, animation, __) => FadeTransition(
           opacity: CurvedAnimation(
@@ -193,7 +191,7 @@ class _DesktopScaffold extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(20, 18, 14, 14),
                     child: Row(
                       children: [
-                        const GeminiSparkleIcon(size: 24, animate: true),
+                        const GeminiSparkleIcon(size: 24),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -266,10 +264,7 @@ class _DesktopScaffold extends ConsumerWidget {
                                   const EdgeInsets.symmetric(horizontal: 18),
                               child: Row(
                                 children: [
-                                  const GeminiSparkleIcon(
-                                    size: 19,
-                                    animate: true,
-                                  ),
+                                  const GeminiSparkleIcon(size: 19),
                                   const SizedBox(width: 12),
                                   Text(
                                     '新建计划',
@@ -569,7 +564,7 @@ class _MobileScaffold extends ConsumerWidget {
                 TermDateUtils.dateOnly(DateTime.now());
             ref.read(activeNavProvider.notifier).state = NavSection.daily;
           },
-          icon: const GeminiSparkleIcon(size: 22, animate: true),
+          icon: const GeminiSparkleIcon(size: 22),
         ),
         title: Text(
           'TermFlow',
@@ -612,7 +607,7 @@ class _MobileScaffold extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const GeminiSparkleIcon(size: 20, animate: true),
+            const GeminiSparkleIcon(size: 20),
             const SizedBox(width: 9),
             Text(
               '新建',
@@ -629,41 +624,40 @@ class _MobileScaffold extends ConsumerWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: tokens.glassElevated,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: tokens.glassBorder),
-                ),
-                child: NavigationBar(
-                  height: 66,
-                  selectedIndex: NavSection.values.indexOf(section),
-                  onDestinationSelected: (idx) {
-                    ref.read(activeNavProvider.notifier).state =
-                        NavSection.values[idx];
-                  },
-                  destinations: NavSection.values
-                      .map(
-                        (nav) => NavigationDestination(
-                          icon: Icon(
-                            nav.icon,
-                            size: 22,
-                            color: tokens.textSecondary,
-                          ),
-                          selectedIcon: Icon(
-                            nav.selectedIcon,
-                            size: 22,
-                            color: tokens.textPrimary,
-                          ),
-                          label: nav.label,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: tokens.isDark
+                  ? const Color(0xEB1A1C23)
+                  : const Color(0xF0F2F6FC),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: tokens.glassBorder),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: NavigationBar(
+                height: 66,
+                selectedIndex: NavSection.values.indexOf(section),
+                onDestinationSelected: (idx) {
+                  ref.read(activeNavProvider.notifier).state =
+                      NavSection.values[idx];
+                },
+                destinations: NavSection.values
+                    .map(
+                      (nav) => NavigationDestination(
+                        icon: Icon(
+                          nav.icon,
+                          size: 22,
+                          color: tokens.textSecondary,
                         ),
-                      )
-                      .toList(),
-                ),
+                        selectedIcon: Icon(
+                          nav.selectedIcon,
+                          size: 22,
+                          color: tokens.textPrimary,
+                        ),
+                        label: nav.label,
+                      ),
+                    )
+                    .toList(),
               ),
             ),
           ),

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,7 +8,7 @@ import '../../core/utils/date_utils.dart';
 import '../providers/app_providers.dart';
 import 'gemini_components.dart';
 
-/// Gemini 毛玻璃新建任务弹窗（24px 背景模糊 + 胶囊交互控件）
+/// Gemini 高对比胶囊新建任务弹窗
 class TaskEditorDialog extends ConsumerStatefulWidget {
   const TaskEditorDialog({
     super.key,
@@ -31,14 +29,11 @@ class TaskEditorDialog extends ConsumerStatefulWidget {
   }) {
     return showDialog<void>(
       context: context,
-      barrierColor: Colors.black.withAlpha(110),
-      builder: (_) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: TaskEditorDialog(
-          initialScheduledDate: initialScheduledDate,
-          initialWeekStartDate: initialWeekStartDate,
-          initialGoalId: initialGoalId,
-        ),
+      barrierColor: Colors.black.withAlpha(132),
+      builder: (_) => TaskEditorDialog(
+        initialScheduledDate: initialScheduledDate,
+        initialWeekStartDate: initialWeekStartDate,
+        initialGoalId: initialGoalId,
       ),
     );
   }
@@ -147,7 +142,7 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
     return AlertDialog(
       title: const Row(
         children: [
-          GeminiSparkleIcon(size: 21, animate: true),
+          GeminiSparkleIcon(size: 21),
           SizedBox(width: 10),
           Text('新建计划事项'),
         ],

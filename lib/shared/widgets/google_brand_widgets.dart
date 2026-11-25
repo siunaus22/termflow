@@ -1,11 +1,10 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/gemini_tokens.dart';
 import 'gemini_components.dart';
 
-/// 1. Gemini 四芒星新建图标（替代旧版十字号，契合 Gemini App 视觉心智）
+/// 1. Gemini 四芒星新建图标（静态零开销）
 class GooglePlusIcon extends StatelessWidget {
   const GooglePlusIcon({super.key, this.size = 22});
 
@@ -13,7 +12,7 @@ class GooglePlusIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GeminiSparkleIcon(size: size, animate: true);
+    return GeminiSparkleIcon(size: size);
   }
 }
 
@@ -240,41 +239,35 @@ class M3SegmentedColumn extends StatelessWidget {
     final bg = tileColor ?? tokens.glassSurface;
     final count = children.length;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(outerRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(count, (i) {
-            final isFirst = i == 0;
-            final isLast = i == count - 1;
-            final radius = BorderRadius.only(
-              topLeft: Radius.circular(isFirst ? outerRadius : innerRadius),
-              topRight: Radius.circular(isFirst ? outerRadius : innerRadius),
-              bottomLeft: Radius.circular(isLast ? outerRadius : innerRadius),
-              bottomRight: Radius.circular(isLast ? outerRadius : innerRadius),
-            );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(count, (i) {
+        final isFirst = i == 0;
+        final isLast = i == count - 1;
+        final radius = BorderRadius.only(
+          topLeft: Radius.circular(isFirst ? outerRadius : innerRadius),
+          topRight: Radius.circular(isFirst ? outerRadius : innerRadius),
+          bottomLeft: Radius.circular(isLast ? outerRadius : innerRadius),
+          bottomRight: Radius.circular(isLast ? outerRadius : innerRadius),
+        );
 
-            return Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : gap),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: bg,
-                  borderRadius: radius,
-                  border: Border.all(color: tokens.glassBorder, width: 1),
-                ),
-                child: Material(
-                  type: MaterialType.transparency,
-                  borderRadius: radius,
-                  clipBehavior: Clip.antiAlias,
-                  child: children[i],
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
+        return Padding(
+          padding: EdgeInsets.only(bottom: isLast ? 0 : gap),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: radius,
+              border: Border.all(color: tokens.glassBorder, width: 1),
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              borderRadius: radius,
+              clipBehavior: Clip.antiAlias,
+              child: children[i],
+            ),
+          ),
+        );
+      }),
     );
   }
 }
@@ -328,7 +321,7 @@ class ChromeCounterBadge extends StatelessWidget {
   }
 }
 
-/// 6. Gemini 四芒星品牌徽标
+/// 6. Gemini 四芒星品牌徽标（静态零开销）
 class GoogleBrandLogo extends StatelessWidget {
   const GoogleBrandLogo({super.key, this.size = 26});
 
@@ -336,7 +329,7 @@ class GoogleBrandLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GeminiSparkleIcon(size: size, animate: true);
+    return GeminiSparkleIcon(size: size);
   }
 }
 

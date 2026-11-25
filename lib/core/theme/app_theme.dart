@@ -206,8 +206,8 @@ class AppTheme {
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: tokens.isDark
-            ? const Color(0xEB1B1C21)
-            : const Color(0xF2FFFFFF),
+            ? const Color(0xF71B1C22)
+            : const Color(0xFAFFFFFF),
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(tokens.heroRadius),
@@ -216,8 +216,8 @@ class AppTheme {
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: tokens.isDark
-            ? const Color(0xEB18191E)
-            : const Color(0xF2F8FAFD),
+            ? const Color(0xF718191F)
+            : const Color(0xFAF8FAFD),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,7 +7,7 @@ import '../../data/local/app_database.dart';
 import '../providers/app_providers.dart';
 import 'gemini_components.dart';
 
-/// Gemini 毛玻璃目标编辑弹窗
+/// Gemini 风格目标编辑弹窗
 class GoalEditorDialog extends ConsumerStatefulWidget {
   const GoalEditorDialog({
     super.key,
@@ -45,19 +43,16 @@ class GoalEditorDialog extends ConsumerStatefulWidget {
   }) {
     return showDialog<void>(
       context: context,
-      barrierColor: Colors.black.withAlpha(110),
-      builder: (_) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: GoalEditorDialog(
-          level: level,
-          existing: existing,
-          defaultSemesterId: defaultSemesterId,
-          defaultParentGoalId: defaultParentGoalId,
-          targetYear: targetYear,
-          targetMonth: targetMonth,
-          targetWeekIndex: targetWeekIndex,
-          weekStartDate: weekStartDate,
-        ),
+      barrierColor: Colors.black.withAlpha(132),
+      builder: (_) => GoalEditorDialog(
+        level: level,
+        existing: existing,
+        defaultSemesterId: defaultSemesterId,
+        defaultParentGoalId: defaultParentGoalId,
+        targetYear: targetYear,
+        targetMonth: targetMonth,
+        targetWeekIndex: targetWeekIndex,
+        weekStartDate: weekStartDate,
       ),
     );
   }
@@ -157,7 +152,7 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          const GeminiSparkleIcon(size: 21, animate: true),
+          const GeminiSparkleIcon(size: 21),
           const SizedBox(width: 10),
           Text(
             widget.existing == null

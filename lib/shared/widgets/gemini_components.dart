@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/gemini_tokens.dart';
 
-/// 1. Gemini 毛玻璃通透容器（rgba 半透明色调表面 + 24px 高斯模糊 + 1px 微光描边）
+/// 1. 高帧率零离屏拷贝优化的 Gemini 半透明毛玻璃容器
+/// 由于底层 GeminiAmbientBackground 本身即为大半径低频弥散极光，默认采用「半透明色调表面 + 微高光渐变层 + 1px 镜面描边」，
+/// 避免在移动端滚动与手势退出时产生多层全屏 BackdropFilter 纹理回读卡顿；仅在确需覆盖高频文字时按需开启 enableBlur
 class GeminiGlassCard extends StatelessWidget {
   const GeminiGlassCard({
     super.key,
@@ -16,7 +18,7 @@ class GeminiGlassCard extends StatelessWidget {
     this.blurSigma,
     this.backgroundColor,
     this.isHighlighted = false,
-    this.enableBlur = true,
+    this.enableBlur = false,
     this.onTap,
   });
 
@@ -34,18 +36,26 @@ class GeminiGlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = GeminiTokens.of(context);
     final radius = borderRadius ?? BorderRadius.circular(tokens.cardRadius);
-    final sigma = blurSigma ?? tokens.blurSigma;
     final fill = backgroundColor ?? tokens.glassSurface;
+    final topTint = Color.alphaBlend(
+      Colors.white.withAlpha(tokens.isDark ? 10 : 55),
+      fill,
+    );
 
     Widget inner = AnimatedContainer(
       duration: GeminiTokens.fastDuration,
       curve: GeminiTokens.springCurve,
       padding: padding,
       decoration: BoxDecoration(
-        color: fill,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [topTint, fill],
+        ),
         borderRadius: radius,
         border: Border.all(
-          color: isHighlighted ? tokens.glassHighlightBorder : tokens.glassBorder,
+          color:
+              isHighlighted ? tokens.glassHighlightBorder : tokens.glassBorder,
           width: isHighlighted ? 1.35 : 1.0,
         ),
       ),
@@ -63,24 +73,27 @@ class GeminiGlassCard extends StatelessWidget {
       );
     }
 
-    Widget clipped = ClipRRect(
-      borderRadius: radius,
-      child: enableBlur
-          ? BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+    Widget result = enableBlur
+        ? ClipRRect(
+            borderRadius: radius,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: blurSigma ?? 12.0,
+                sigmaY: blurSigma ?? 12.0,
+              ),
               child: inner,
-            )
-          : inner,
-    );
+            ),
+          )
+        : inner;
 
     if (margin != null) {
-      clipped = Padding(padding: margin!, child: clipped);
+      result = Padding(padding: margin!, child: result);
     }
-    return clipped;
+    return result;
   }
 }
 
-/// 2. Gemini 经典四角星芒（✦）组件，支持呼吸缩放与微旋转动效
+/// 2. Gemini 经典四角星芒（✦）组件：默认静态零开销，仅在聚焦或同步时启动微动效
 class GeminiSparkleIcon extends StatefulWidget {
   const GeminiSparkleIcon({
     super.key,
@@ -99,53 +112,56 @@ class GeminiSparkleIcon extends StatefulWidget {
 
 class _GeminiSparkleIconState extends State<GeminiSparkleIcon>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
+  AnimationController? _ctrl;
+
+  void _ensureController() {
+    final shouldRun = widget.animate || widget.spin;
+    if (shouldRun) {
+      _ctrl ??= AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 2800),
+      );
+      if (!_ctrl!.isAnimating) {
+        _ctrl!.repeat();
+      }
+    } else {
+      _ctrl?.stop();
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2800),
-    );
-    if (widget.animate || widget.spin) {
-      _ctrl.repeat();
-    }
+    _ensureController();
   }
 
   @override
   void didUpdateWidget(covariant GeminiSparkleIcon oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final shouldRun = widget.animate || widget.spin;
-    if (shouldRun && !_ctrl.isAnimating) {
-      _ctrl.repeat();
-    } else if (!shouldRun && _ctrl.isAnimating) {
-      _ctrl.stop();
-      _ctrl.value = 0;
-    }
+    _ensureController();
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _ctrl?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-    if (reduceMotion || (!widget.animate && !widget.spin)) {
+    if (reduceMotion || (!widget.animate && !widget.spin) || _ctrl == null) {
       return SizedBox(
         width: widget.size,
         height: widget.size,
-        child: CustomPaint(painter: _GeminiStarPainter(phase: 0.2)),
+        child: const CustomPaint(painter: _GeminiStarPainter(phase: 0.2)),
       );
     }
 
     return AnimatedBuilder(
-      animation: _ctrl,
+      animation: _ctrl!,
       builder: (context, _) {
-        final t = _ctrl.value;
+        final t = _ctrl!.value;
         final breathScale =
             widget.animate ? (0.92 + 0.12 * math.sin(t * math.pi * 2)) : 1.0;
         final angle = widget.spin
@@ -169,7 +185,7 @@ class _GeminiSparkleIconState extends State<GeminiSparkleIcon>
 }
 
 class _GeminiStarPainter extends CustomPainter {
-  _GeminiStarPainter({required this.phase});
+  const _GeminiStarPainter({required this.phase});
 
   final double phase;
 
@@ -178,7 +194,7 @@ class _GeminiStarPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
     final r = size.width * 0.48;
-    final k = r * 0.16; // 内凹贝塞尔曲率控制点，还原 Gemini 标志性星芒轮廓
+    final k = r * 0.16;
 
     final path = Path()
       ..moveTo(cx, cy - r)
@@ -216,7 +232,7 @@ class _GeminiStarPainter extends CustomPainter {
       oldDelegate.phase != phase;
 }
 
-/// 3. 克制的 Gemini 蓝紫星云渐变标题（仅用于欢迎语主标题）
+/// 3. 克制的 Gemini 蓝紫星云渐变标题
 class GeminiGradientText extends StatelessWidget {
   const GeminiGradientText(
     this.text, {
@@ -246,7 +262,7 @@ class GeminiGradientText extends StatelessWidget {
   }
 }
 
-/// 4. Gemini 核心输入胶囊栏（支持直接输入回车创建任务 + 聚焦时点亮流光边框并唤醒底层极光）
+/// 4. Gemini 核心输入胶囊栏（零离屏模糊拷贝，满帧响应键盘弹起与退出）
 class GeminiPromptBar extends StatefulWidget {
   const GeminiPromptBar({
     super.key,
@@ -317,96 +333,82 @@ class _GeminiPromptBarState extends State<GeminiPromptBar> {
         borderRadius: radius,
         gradient: _isFocused ? tokens.subtleBorderGradient : null,
         color: _isFocused ? null : tokens.glassBorder,
-        boxShadow: _isFocused
-            ? [
-                BoxShadow(
-                  color: GeminiTokens.cobaltViolet.withAlpha(
-                    tokens.isDark ? 48 : 30,
-                  ),
-                  blurRadius: 24,
-                  spreadRadius: 1,
-                ),
-              ]
-            : null,
       ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: ColoredBox(
-            color: tokens.glassElevated,
-            child: SizedBox(
-              height: 60,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 0, 8, 0),
-                child: Row(
-                  children: [
-                    GeminiSparkleIcon(
-                      size: 22,
-                      animate: _isFocused || _hasText,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _handleSubmit(),
-                        style: TextStyle(
-                          fontSize: 15.5,
-                          color: tokens.textPrimary,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: widget.hintText,
-                          hintStyle: TextStyle(
-                            fontSize: 15.5,
-                            color: tokens.textSecondary,
-                          ),
-                          filled: false,
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                    if (_hasText)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: GeminiTokens.cobaltViolet,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                            minimumSize: const Size(0, 40),
-                          ),
-                          onPressed: _handleSubmit,
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.arrow_upward_rounded, size: 18),
-                              SizedBox(width: 4),
-                              Text('添加'),
-                            ],
-                          ),
-                        ),
-                      )
-                    else ...[
-                      IconButton(
-                        tooltip: '打开完整新建面板',
-                        onPressed: widget.onOpenFullEditor,
-                        icon: Icon(
-                          Icons.add_circle_outline_rounded,
-                          color: tokens.textSecondary,
-                        ),
-                      ),
-                      ...widget.trailingActions,
-                    ],
-                  ],
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: tokens.glassElevated,
+          borderRadius: radius,
+        ),
+        child: SizedBox(
+          height: 60,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 8, 0),
+            child: Row(
+              children: [
+                GeminiSparkleIcon(
+                  size: 22,
+                  animate: _isFocused || _hasText,
                 ),
-              ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _handleSubmit(),
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      color: tokens.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: widget.hintText,
+                      hintStyle: TextStyle(
+                        fontSize: 15.5,
+                        color: tokens.textSecondary,
+                      ),
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
+                    ),
+                  ),
+                ),
+                if (_hasText)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: GeminiTokens.cobaltViolet,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        minimumSize: const Size(0, 40),
+                      ),
+                      onPressed: _handleSubmit,
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.arrow_upward_rounded, size: 18),
+                          SizedBox(width: 4),
+                          Text('添加'),
+                        ],
+                      ),
+                    ),
+                  )
+                else ...[
+                  IconButton(
+                    tooltip: '打开完整新建面板',
+                    onPressed: widget.onOpenFullEditor,
+                    icon: Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                  ...widget.trailingActions,
+                ],
+              ],
             ),
           ),
         ),
@@ -415,7 +417,7 @@ class _GeminiPromptBarState extends State<GeminiPromptBar> {
   }
 }
 
-/// 5. 轻量光波扫过（Shimmer）骨架条
+/// 5. 轻量光波骨架屏
 class GeminiShimmerSkeleton extends StatefulWidget {
   const GeminiShimmerSkeleton({
     super.key,
