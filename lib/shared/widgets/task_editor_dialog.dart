@@ -1,13 +1,16 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_enums.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/gemini_tokens.dart';
 import '../../core/utils/date_utils.dart';
 import '../providers/app_providers.dart';
-import 'google_brand_widgets.dart';
+import 'gemini_components.dart';
 
-/// Google Tasks / Material 3 风格快速新建任务弹窗
+/// Gemini 毛玻璃新建任务弹窗（24px 背景模糊 + 胶囊交互控件）
 class TaskEditorDialog extends ConsumerStatefulWidget {
   const TaskEditorDialog({
     super.key,
@@ -28,10 +31,14 @@ class TaskEditorDialog extends ConsumerStatefulWidget {
   }) {
     return showDialog<void>(
       context: context,
-      builder: (_) => TaskEditorDialog(
-        initialScheduledDate: initialScheduledDate,
-        initialWeekStartDate: initialWeekStartDate,
-        initialGoalId: initialGoalId,
+      barrierColor: Colors.black.withAlpha(110),
+      builder: (_) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: TaskEditorDialog(
+          initialScheduledDate: initialScheduledDate,
+          initialWeekStartDate: initialWeekStartDate,
+          initialGoalId: initialGoalId,
+        ),
       ),
     );
   }
@@ -135,13 +142,14 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
   Widget build(BuildContext context) {
     final goals = ref.watch(allGoalsStreamProvider).valueOrNull ?? [];
     final tags = ref.watch(tagsStreamProvider).valueOrNull ?? [];
+    final tokens = GeminiTokens.of(context);
 
     return AlertDialog(
       title: const Row(
         children: [
-          GooglePlusIcon(size: 22),
+          GeminiSparkleIcon(size: 21, animate: true),
           SizedBox(width: 10),
-          Text('新建计划事项', style: TextStyle(fontWeight: FontWeight.w700)),
+          Text('新建计划事项'),
         ],
       ),
       content: SizedBox(
@@ -151,16 +159,13 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const GoogleFourColorBar(height: 3),
-              const SizedBox(height: 16),
               TextField(
                 controller: _titleController,
                 autofocus: true,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _submit(),
                 decoration: const InputDecoration(
-                  hintText: '准备完成什么？（例如：刷完图论最短路专题）',
-                  prefixIcon: Icon(Icons.task_alt_rounded),
+                  hintText: '输入待办事项标题...',
                 ),
               ),
               const SizedBox(height: 10),
@@ -168,19 +173,17 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                 controller: _notesController,
                 maxLines: 2,
                 decoration: const InputDecoration(
-                  hintText: '添加关键步骤或备注（可选）',
-                  prefixIcon: Icon(Icons.notes_rounded),
+                  hintText: '补充关键步骤或备注（可选）',
                 ),
               ),
               const SizedBox(height: 16),
-
-              // 优先级选择 P0 - P3（Google 四色映射）
               Text(
-                '色彩优先级',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                '优先级',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.textSecondary,
+                ),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -191,22 +194,17 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                   return ChoiceChip(
                     label: Text('${p.code} · ${p.label}'),
                     selected: selected,
-                    selectedColor: p.color.withAlpha(42),
-                    side: BorderSide(
-                      color: selected ? p.color : p.color.withAlpha(80),
-                    ),
+                    selectedColor: p.color.withAlpha(46),
                     labelStyle: TextStyle(
-                      color: p.color,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      fontSize: 12,
+                      color: selected ? tokens.textPrimary : tokens.textSecondary,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      fontSize: 12.5,
                     ),
                     onSelected: (_) => setState(() => _priority = p),
                   );
                 }).toList(),
               ),
               const SizedBox(height: 16),
-
-              // 排期日期 + 预计耗时
               Row(
                 children: [
                   Expanded(
@@ -254,14 +252,13 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-
-              // 关联上级目标
               Text(
-                '关联上级目标（完成后自动推进进度）',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                '关联上级目标',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.textSecondary,
+                ),
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String?>(
@@ -286,15 +283,15 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                 ],
                 onChanged: (v) => setState(() => _goalId = v),
               ),
-
               if (tags.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
-                  '多彩标签',
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  '分类标签',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -304,18 +301,10 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
                     final color = AppTheme.parseHex(tag.colorHex);
                     final selected = _selectedTagIds.contains(tag.id);
                     return FilterChip(
+                      avatar: CircleAvatar(radius: 4.5, backgroundColor: color),
                       label: Text(tag.name),
                       selected: selected,
-                      selectedColor: color.withAlpha(42),
-                      checkmarkColor: color,
-                      side: BorderSide(
-                        color: selected ? color : color.withAlpha(80),
-                      ),
-                      labelStyle: TextStyle(
-                        color: color,
-                        fontWeight:
-                            selected ? FontWeight.w700 : FontWeight.w500,
-                      ),
+                      selectedColor: color.withAlpha(46),
                       onSelected: (v) {
                         setState(() {
                           if (v) {
@@ -338,16 +327,13 @@ class _TaskEditorDialogState extends ConsumerState<TaskEditorDialog> {
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
-        FilledButton.icon(
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: GeminiTokens.cobaltViolet,
+            foregroundColor: Colors.white,
+          ),
           onPressed: _saving ? null : _submit,
-          icon: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.check_rounded, size: 18),
-          label: const Text('创建'),
+          child: Text(_saving ? '创建中...' : '创建事项'),
         ),
       ],
     );

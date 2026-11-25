@@ -1,13 +1,15 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_enums.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/gemini_tokens.dart';
 import '../../data/local/app_database.dart';
 import '../providers/app_providers.dart';
-import 'google_brand_widgets.dart';
+import 'gemini_components.dart';
 
-/// Material 3 多彩风格 学期 / 月度 / 周目标编辑弹窗
+/// Gemini 毛玻璃目标编辑弹窗
 class GoalEditorDialog extends ConsumerStatefulWidget {
   const GoalEditorDialog({
     super.key,
@@ -43,15 +45,19 @@ class GoalEditorDialog extends ConsumerStatefulWidget {
   }) {
     return showDialog<void>(
       context: context,
-      builder: (_) => GoalEditorDialog(
-        level: level,
-        existing: existing,
-        defaultSemesterId: defaultSemesterId,
-        defaultParentGoalId: defaultParentGoalId,
-        targetYear: targetYear,
-        targetMonth: targetMonth,
-        targetWeekIndex: targetWeekIndex,
-        weekStartDate: weekStartDate,
+      barrierColor: Colors.black.withAlpha(110),
+      builder: (_) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: GoalEditorDialog(
+          level: level,
+          existing: existing,
+          defaultSemesterId: defaultSemesterId,
+          defaultParentGoalId: defaultParentGoalId,
+          targetYear: targetYear,
+          targetMonth: targetMonth,
+          targetWeekIndex: targetWeekIndex,
+          weekStartDate: weekStartDate,
+        ),
       ),
     );
   }
@@ -134,6 +140,7 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
   @override
   Widget build(BuildContext context) {
     final allGoals = ref.watch(allGoalsStreamProvider).valueOrNull ?? [];
+    final tokens = GeminiTokens.of(context);
     final allowedParentLevels = switch (widget.level) {
       GoalLevel.semester => <String>{},
       GoalLevel.monthly => {GoalLevel.semester.value},
@@ -150,21 +157,12 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: widget.level.accentColor.withAlpha(32),
-            child: Icon(
-              Icons.flag_rounded,
-              size: 18,
-              color: widget.level.accentColor,
-            ),
-          ),
+          const GeminiSparkleIcon(size: 21, animate: true),
           const SizedBox(width: 10),
           Text(
             widget.existing == null
                 ? '新建${widget.level.label}'
                 : '编辑${widget.level.label}',
-            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -175,8 +173,6 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const GoogleFourColorBar(height: 3),
-              const SizedBox(height: 16),
               TextField(
                 controller: _titleController,
                 autofocus: true,
@@ -198,11 +194,12 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
               ),
               const SizedBox(height: 16),
               Text(
-                '多彩目标维度',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                '目标维度',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.textSecondary,
+                ),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -214,14 +211,7 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
                     avatar: Icon(c.icon, size: 16, color: c.color),
                     label: Text(c.label),
                     selected: selected,
-                    selectedColor: c.color.withAlpha(42),
-                    side: BorderSide(
-                      color: selected ? c.color : c.color.withAlpha(80),
-                    ),
-                    labelStyle: TextStyle(
-                      color: c.color,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    ),
+                    selectedColor: c.color.withAlpha(46),
                     onSelected: (_) => setState(() => _category = c),
                   );
                 }).toList(),
@@ -230,10 +220,11 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
                 const SizedBox(height: 16),
                 Text(
                   '关联上级目标',
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String?>(
@@ -265,10 +256,11 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
                 children: [
                   Text(
                     '进度模式',
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: tokens.textSecondary,
+                    ),
                   ),
                   const Spacer(),
                   SegmentedButton<String>(
@@ -296,8 +288,8 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
                     Text(
                       '${(_manualProgress * 100).round()}%',
                       style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: _category.color,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.textPrimary,
                       ),
                     ),
                   ],
@@ -310,7 +302,8 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
       actions: [
         if (widget.existing != null)
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppTheme.googleRed),
+            style: TextButton.styleFrom(
+                foregroundColor: GeminiTokens.roseAccent),
             onPressed: _saving
                 ? null
                 : () async {
@@ -326,8 +319,12 @@ class _GoalEditorDialogState extends ConsumerState<GoalEditorDialog> {
           child: const Text('取消'),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: GeminiTokens.cobaltViolet,
+            foregroundColor: Colors.white,
+          ),
           onPressed: _saving ? null : _submit,
-          child: Text(widget.existing == null ? '创建' : '保存'),
+          child: Text(widget.existing == null ? '创建目标' : '保存修改'),
         ),
       ],
     );

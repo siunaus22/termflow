@@ -1,190 +1,369 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/gemini_tokens.dart';
+import 'gemini_components.dart';
 
-/// Google Calendar / Google Tasks / Google Drive 标志性的四色「+」号图标
+/// 1. Gemini 四芒星新建图标（替代旧版十字号，契合 Gemini App 视觉心智）
 class GooglePlusIcon extends StatelessWidget {
-  const GooglePlusIcon({super.key, this.size = 24});
+  const GooglePlusIcon({super.key, this.size = 22});
 
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _GooglePlusPainter(),
-      ),
-    );
+    return GeminiSparkleIcon(size: size, animate: true);
   }
 }
 
-class _GooglePlusPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = Offset(size.width / 2, size.height / 2);
-    final arm = size.width * 0.40;
-    final stroke = size.width * 0.17;
+/// 2. Gemini 星云流光光环头像（蓝 -> 钴紫 -> 紫罗兰 -> 柔玫红）
+class GoogleRingAvatar extends StatelessWidget {
+  const GoogleRingAvatar({
+    super.key,
+    required this.text,
+    this.size = 34,
+    this.ringWidth = 2.2,
+    this.fillColor = const Color(0xFF282D3E),
+    this.showCameraBadge = false,
+  });
 
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round;
-
-    // 上臂：Google Red
-    paint.color = AppTheme.googleRed;
-    canvas.drawLine(c, Offset(c.dx, c.dy - arm), paint);
-
-    // 左臂：Google Yellow
-    paint.color = AppTheme.googleYellow;
-    canvas.drawLine(c, Offset(c.dx - arm, c.dy), paint);
-
-    // 下臂：Google Green
-    paint.color = AppTheme.googleGreen;
-    canvas.drawLine(c, Offset(c.dx, c.dy + arm), paint);
-
-    // 右臂：Google Blue（最后绘制覆盖中心交汇点）
-    paint.color = AppTheme.googleBlue;
-    canvas.drawLine(c, Offset(c.dx + arm, c.dy), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// Google 四色几何品牌徽章（蓝、红、黄、绿四叶圆角矩阵）
-class GoogleBrandLogo extends StatelessWidget {
-  const GoogleBrandLogo({super.key, this.size = 32});
-
+  final String text;
   final double size;
+  final double ringWidth;
+  final Color fillColor;
+  final bool showCameraBadge;
 
   @override
   Widget build(BuildContext context) {
-    final dot = size * 0.43;
-    final gap = size * 0.10;
+    final tokens = GeminiTokens.of(context);
+    final displayText =
+        text.trim().isEmpty ? 'TF' : text.trim().characters.take(2).toString();
+    final innerSize = size - ringWidth * 3.4;
+
     return SizedBox(
       width: size,
       height: size,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _Petal(
-                size: dot,
-                color: AppTheme.googleBlue,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(dot * 0.55),
-                  topRight: Radius.circular(dot * 0.55),
-                  bottomLeft: Radius.circular(dot * 0.55),
-                  bottomRight: Radius.circular(dot * 0.18),
-                ),
-              ),
-              SizedBox(width: gap),
-              _Petal(
-                size: dot,
-                color: AppTheme.googleRed,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(dot * 0.55),
-                  topRight: Radius.circular(dot * 0.55),
-                  bottomRight: Radius.circular(dot * 0.55),
-                  bottomLeft: Radius.circular(dot * 0.18),
-                ),
-              ),
-            ],
+          CustomPaint(
+            size: Size(size, size),
+            painter: _GeminiAvatarRingPainter(strokeWidth: ringWidth),
           ),
-          SizedBox(height: gap),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _Petal(
-                size: dot,
-                color: AppTheme.googleYellow,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(dot * 0.55),
-                  bottomLeft: Radius.circular(dot * 0.55),
-                  bottomRight: Radius.circular(dot * 0.55),
-                  topRight: Radius.circular(dot * 0.18),
-                ),
+          Container(
+            width: innerSize,
+            height: innerSize,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF33416E), Color(0xFF4A386B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              SizedBox(width: gap),
-              _Petal(
-                size: dot,
-                color: AppTheme.googleGreen,
-                borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(dot * 0.55),
-                  bottomLeft: Radius.circular(dot * 0.55),
-                  bottomRight: Radius.circular(dot * 0.55),
-                  topLeft: Radius.circular(dot * 0.18),
-                ),
+              shape: BoxShape.circle,
+              border: Border.all(color: tokens.glassBorder, width: 0.8),
+            ),
+            child: Text(
+              displayText,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: innerSize * (displayText.length > 1 ? 0.36 : 0.46),
+                fontWeight: FontWeight.w600,
+                height: 1.0,
               ),
-            ],
+            ),
           ),
+          if (showCameraBadge)
+            Positioned(
+              right: 2,
+              bottom: 2,
+              child: Container(
+                width: size * 0.30,
+                height: size * 0.30,
+                decoration: BoxDecoration(
+                  color: tokens.glassElevated,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: tokens.glassBorder),
+                ),
+                child: const Center(
+                  child: GeminiSparkleIcon(size: 13),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-class _Petal extends StatelessWidget {
-  const _Petal({
-    required this.size,
-    required this.color,
-    required this.borderRadius,
+class _GeminiAvatarRingPainter extends CustomPainter {
+  _GeminiAvatarRingPainter({required this.strokeWidth});
+
+  final double strokeWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset(strokeWidth / 2, strokeWidth / 2) &
+        Size(size.width - strokeWidth, size.height - strokeWidth);
+    const sweepGradient = SweepGradient(
+      colors: [
+        GeminiTokens.electricBlue,
+        GeminiTokens.cobaltViolet,
+        GeminiTokens.softViolet,
+        GeminiTokens.roseAccent,
+        GeminiTokens.cyanAccent,
+        GeminiTokens.electricBlue,
+      ],
+    );
+
+    final p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..shader = sweepGradient.createShader(rect);
+    canvas.drawArc(rect, 0, math.pi * 2, false, p);
+  }
+
+  @override
+  bool shouldRepaint(covariant _GeminiAvatarRingPainter oldDelegate) =>
+      oldDelegate.strokeWidth != strokeWidth;
+}
+
+/// 3. Material 3 × Gemini 柔和光晕圆章
+class M3ScallopBadge extends StatelessWidget {
+  const M3ScallopBadge({
+    super.key,
+    required this.child,
+    this.size = 46,
+    this.color,
+    this.lobes = 8,
   });
 
+  final Widget child;
   final double size;
-  final Color color;
-  final BorderRadius borderRadius;
+  final Color? color;
+  final int lobes;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final tokens = GeminiTokens.of(context);
+    final badgeColor = color ?? tokens.glassPill;
+    return SizedBox(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: borderRadius,
+      child: CustomPaint(
+        painter: _ScallopPainter(
+          color: badgeColor,
+          borderColor: tokens.glassBorder,
+          lobes: lobes,
+        ),
+        child: Center(child: child),
       ),
     );
   }
 }
 
-/// Google 标志性四色装饰条
-class GoogleFourColorBar extends StatelessWidget {
-  const GoogleFourColorBar({super.key, this.height = 4});
+class _ScallopPainter extends CustomPainter {
+  _ScallopPainter({
+    required this.color,
+    required this.borderColor,
+    required this.lobes,
+  });
 
-  final double height;
+  final Color color;
+  final Color borderColor;
+  final int lobes;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final baseR = size.width * 0.44;
+    final amp = size.width * 0.042;
+    const steps = 100;
+
+    final path = Path();
+    for (var i = 0; i <= steps; i++) {
+      final theta = (i / steps) * math.pi * 2;
+      final r = baseR + amp * math.cos(lobes * theta);
+      final x = cx + r * math.cos(theta);
+      final y = cy + r * math.sin(theta);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = borderColor
+        ..strokeWidth = 1.0
+        ..style = PaintingStyle.stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScallopPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.borderColor != borderColor;
+}
+
+/// 4. 毛玻璃分段岛式容器组（外圈 24px 大圆角 + 内缝 4px + 毛玻璃模糊与微光描边）
+class M3SegmentedColumn extends StatelessWidget {
+  const M3SegmentedColumn({
+    super.key,
+    required this.children,
+    this.outerRadius = 24,
+    this.innerRadius = 5,
+    this.gap = 3.0,
+    this.tileColor,
+  });
+
+  final List<Widget> children;
+  final double outerRadius;
+  final double innerRadius;
+  final double gap;
+  final Color? tileColor;
 
   @override
   Widget build(BuildContext context) {
+    if (children.isEmpty) return const SizedBox.shrink();
+    final tokens = GeminiTokens.of(context);
+    final bg = tileColor ?? tokens.glassSurface;
+    final count = children.length;
+
     return ClipRRect(
-      borderRadius: BorderRadius.circular(height),
-      child: SizedBox(
-        height: height,
-        child: const Row(
-          children: [
-            Expanded(flex: 35, child: ColoredBox(color: AppTheme.googleBlue)),
-            Expanded(flex: 22, child: ColoredBox(color: AppTheme.googleRed)),
-            Expanded(flex: 18, child: ColoredBox(color: AppTheme.googleYellow)),
-            Expanded(flex: 25, child: ColoredBox(color: AppTheme.googleGreen)),
-          ],
+      borderRadius: BorderRadius.circular(outerRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(count, (i) {
+            final isFirst = i == 0;
+            final isLast = i == count - 1;
+            final radius = BorderRadius.only(
+              topLeft: Radius.circular(isFirst ? outerRadius : innerRadius),
+              topRight: Radius.circular(isFirst ? outerRadius : innerRadius),
+              bottomLeft: Radius.circular(isLast ? outerRadius : innerRadius),
+              bottomRight: Radius.circular(isLast ? outerRadius : innerRadius),
+            );
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : gap),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: radius,
+                  border: Border.all(color: tokens.glassBorder, width: 1),
+                ),
+                child: Material(
+                  type: MaterialType.transparency,
+                  borderRadius: radius,
+                  clipBehavior: Clip.antiAlias,
+                  child: children[i],
+                ),
+              ),
+            );
+          }),
         ),
       ),
     );
   }
 }
 
-/// Google Fit / Digital Wellbeing 风格的多彩圆环完成度指示器
+/// 5. 胶囊教学周徽章
+class ChromeCounterBadge extends StatelessWidget {
+  const ChromeCounterBadge({
+    super.key,
+    required this.text,
+    this.onTap,
+    this.tooltip,
+  });
+
+  final String text;
+  final VoidCallback? onTap;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = GeminiTokens.of(context);
+    final pill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: tokens.glassPill,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: tokens.glassBorder),
+      ),
+      child: Text(
+        'W$text',
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w600,
+          color: tokens.textPrimary,
+          height: 1.0,
+        ),
+      ),
+    );
+
+    if (onTap == null) return pill;
+    return Tooltip(
+      message: tooltip ?? '',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: pill,
+        ),
+      ),
+    );
+  }
+}
+
+/// 6. Gemini 四芒星品牌徽标
+class GoogleBrandLogo extends StatelessWidget {
+  const GoogleBrandLogo({super.key, this.size = 26});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return GeminiSparkleIcon(size: size, animate: true);
+  }
+}
+
+class GoogleFourColorBar extends StatelessWidget {
+  const GoogleFourColorBar({super.key, this.height = 3});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = GeminiTokens.of(context);
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(height),
+        gradient: tokens.brandGradient,
+      ),
+    );
+  }
+}
+
 class GoogleProgressRing extends StatelessWidget {
   const GoogleProgressRing({
     super.key,
     required this.progress,
     this.size = 64,
-    this.strokeWidth = 7,
+    this.strokeWidth = 6,
     this.centerChild,
   });
 
@@ -195,6 +374,7 @@ class GoogleProgressRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = GeminiTokens.of(context);
     return SizedBox(
       width: size,
       height: size,
@@ -203,11 +383,10 @@ class GoogleProgressRing extends StatelessWidget {
         children: [
           CustomPaint(
             size: Size(size, size),
-            painter: _GoogleRingPainter(
+            painter: _GeminiRingPainter(
               progress: progress.clamp(0.0, 1.0),
               strokeWidth: strokeWidth,
-              trackColor:
-                  Theme.of(context).colorScheme.onSurface.withAlpha(24),
+              trackColor: tokens.glassBorder,
             ),
           ),
           if (centerChild != null) centerChild!,
@@ -217,8 +396,8 @@ class GoogleProgressRing extends StatelessWidget {
   }
 }
 
-class _GoogleRingPainter extends CustomPainter {
-  _GoogleRingPainter({
+class _GeminiRingPainter extends CustomPainter {
+  _GeminiRingPainter({
     required this.progress,
     required this.strokeWidth,
     required this.trackColor,
@@ -233,42 +412,45 @@ class _GoogleRingPainter extends CustomPainter {
     final rect = Offset(strokeWidth / 2, strokeWidth / 2) &
         Size(size.width - strokeWidth, size.height - strokeWidth);
 
-    final trackPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..color = trackColor
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawArc(rect, 0, math.pi * 2, false, trackPaint);
+    canvas.drawArc(
+      rect,
+      0,
+      math.pi * 2,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..color = trackColor,
+    );
 
     if (progress <= 0.001) return;
 
-    final sweep = math.pi * 2 * progress;
-    const segments = [
-      (0.0, 0.35, AppTheme.googleBlue),
-      (0.35, 0.58, AppTheme.googleRed),
-      (0.58, 0.78, AppTheme.googleYellow),
-      (0.78, 1.0, AppTheme.googleGreen),
-    ];
+    const gradient = SweepGradient(
+      startAngle: -math.pi / 2,
+      endAngle: math.pi * 1.5,
+      colors: [
+        GeminiTokens.electricBlue,
+        GeminiTokens.cobaltViolet,
+        GeminiTokens.softViolet,
+        GeminiTokens.cyanAccent,
+        GeminiTokens.electricBlue,
+      ],
+    );
 
-    for (final seg in segments) {
-      if (progress <= seg.$1) break;
-      final segStart = seg.$1;
-      final segEnd = math.min(progress, seg.$2);
-      final startAngle = -math.pi / 2 + math.pi * 2 * segStart;
-      final segSweep = math.pi * 2 * (segEnd - segStart);
-      if (segSweep <= 0) continue;
-
-      final p = Paint()
+    canvas.drawArc(
+      rect,
+      -math.pi / 2,
+      math.pi * 2 * progress,
+      false,
+      Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
-        ..color = seg.$3
-        ..strokeCap = StrokeCap.round;
-      canvas.drawArc(rect, startAngle, math.min(segSweep, sweep), false, p);
-    }
+        ..strokeCap = StrokeCap.round
+        ..shader = gradient.createShader(rect),
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _GoogleRingPainter oldDelegate) =>
+  bool shouldRepaint(covariant _GeminiRingPainter oldDelegate) =>
       oldDelegate.progress != progress || oldDelegate.trackColor != trackColor;
 }

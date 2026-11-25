@@ -188,8 +188,19 @@ CREATE TRIGGER trg_task_tags_lww
   FOR EACH ROW EXECUTE FUNCTION public.termflow_lww_and_stamp();
 
 -- ============================================================================
--- 4. Row Level Security (RLS) 权限隔离策略（每用户仅能读写自己的数据）
+-- 4. 表级角色授权 + Row Level Security (RLS) 权限隔离策略（每用户仅能读写自己的数据）
 -- ============================================================================
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
+  public.semesters,
+  public.goals,
+  public.tasks,
+  public.tags,
+  public.task_tags
+TO authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
 
 ALTER TABLE public.semesters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.goals     ENABLE ROW LEVEL SECURITY;

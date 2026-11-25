@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'shared/providers/app_providers.dart';
 import 'shared/widgets/app_shell.dart';
+import 'shared/widgets/gemini_ambient_background.dart';
 
 class TermFlowApp extends ConsumerWidget {
   const TermFlowApp({super.key});
@@ -30,6 +31,16 @@ class TermFlowApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      // 全局持久底层渲染原生 GLSL 液态极光背景，页面切换与弹窗呼出时无缝透光不重置相位
+      builder: (context, child) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            const GeminiAmbientBackground(),
+            if (child != null) child,
+          ],
+        );
+      },
       home: const AppShell(),
     );
   }

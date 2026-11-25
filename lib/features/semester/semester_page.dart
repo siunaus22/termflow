@@ -1,16 +1,20 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_enums.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/gemini_tokens.dart';
 import '../../core/utils/date_utils.dart';
 import '../../data/local/app_database.dart';
 import '../../shared/providers/app_providers.dart';
+import '../../shared/widgets/gemini_components.dart';
 import '../../shared/widgets/goal_editor_dialog.dart';
 import '../../shared/widgets/goal_progress_bar.dart';
 import '../../shared/widgets/google_brand_widgets.dart';
 
-/// Google Classroom / Material You 风格多彩学期计划视图
+/// Google Gemini App 毛玻璃风格学期蓝图视图
 class SemesterPage extends ConsumerWidget {
   const SemesterPage({super.key});
 
@@ -21,228 +25,348 @@ class SemesterPage extends ConsumerWidget {
     final semesterGoals =
         ref.watch(semesterGoalsStreamProvider).valueOrNull ?? [];
     final allGoals = ref.watch(allGoalsStreamProvider).valueOrNull ?? [];
-    final theme = Theme.of(context);
+    final tokens = GeminiTokens.of(context);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 96),
-      children: [
-        // 顶部标题与新建学期胶囊按钮
-        Row(
+    int currentWeek = 1;
+    int totalWeeks = 20;
+    double timeProgress = 0.0;
+    if (activeSemester != null) {
+      final start = TermDateUtils.parseIsoDate(activeSemester.startDate);
+      final end = TermDateUtils.parseIsoDate(activeSemester.endDate);
+      final today = TermDateUtils.dateOnly(DateTime.now());
+      currentWeek = TermDateUtils.teachingWeekIndex(
+        targetDate: today,
+        semesterStart: start,
+        weekStartsOn: activeSemester.weekStartsOn,
+      );
+      totalWeeks = TermDateUtils.totalTeachingWeeks(
+        semesterStart: start,
+        semesterEnd: end,
+        weekStartsOn: activeSemester.weekStartsOn,
+      );
+      final totalDays = end.difference(start).inDays;
+      final elapsed = today.difference(start).inDays;
+      timeProgress =
+          totalDays <= 0 ? 0.0 : (elapsed / totalDays).clamp(0.0, 1.0);
+    }
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 112),
           children: [
-            const GoogleBrandLogo(size: 28),
-            const SizedBox(width: 10),
-            Text(
-              '学期蓝图',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const Spacer(),
-            OutlinedButton.icon(
-              onPressed: () => _showSemesterDialog(context, ref),
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('新建学期'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-
-        // 1. Google Material You 旗舰学期卡片（带四色装饰条 + 大号教学周圆环）
-        if (activeSemester != null)
-          _ActiveSemesterHeroCard(
-            semester: activeSemester,
-            allSemesters: semesters,
-            onSwitch: (id) =>
-                ref.read(semesterRepositoryProvider).setActiveSemester(id),
-            onEdit: () =>
-                _showSemesterDialog(context, ref, existing: activeSemester),
-          )
-        else
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: theme.dividerColor),
-            ),
-            child: Column(
-              children: [
-                const GoogleBrandLogo(size: 44),
-                const SizedBox(height: 12),
-                const Text('尚未创建学期，请先新建当前学期以开启教学周计算'),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () => _showSemesterDialog(context, ref),
-                  child: const Text('创建当前学期'),
-                ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 24),
-
-        // 2. 多彩 OKR 学期核心目标卡片（学业蓝 / 项目青 / 竞赛黄 / 生活绿）
-        Row(
-          children: [
-            Text(
-              '学期核心目标 OKR (${semesterGoals.length})',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const Spacer(),
-            FilledButton.tonalIcon(
-              onPressed: () => GoalEditorDialog.show(
-                context,
-                level: GoalLevel.semester,
-                defaultSemesterId: activeSemester?.id,
-              ),
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('添加学期目标'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (semesterGoals.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: theme.dividerColor),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: AppTheme.googleBlue.withAlpha(30),
-                  child: const Icon(
-                    Icons.lightbulb_outline_rounded,
-                    color: AppTheme.googleBlue,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    '设定 3–5 个多彩学期目标（学业 / 项目 / 竞赛 / 生活），拆解为月度与周计划后会自动推进完成百分比！',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.hintColor,
+            // 1. 学期概览毛玻璃英雄卡片
+            GeminiGlassCard(
+              borderRadius: BorderRadius.circular(28),
+              blurSigma: 24,
+              padding: const EdgeInsets.all(22),
+              child: Row(
+                children: [
+                  GoogleProgressRing(
+                    progress: timeProgress,
+                    size: 78,
+                    strokeWidth: 5.5,
+                    centerChild: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          activeSemester == null
+                              ? '--'
+                              : 'W${currentWeek.clamp(1, totalWeeks)}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: tokens.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          '共$totalWeeks周',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: tokens.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          )
-        else
-          ...semesterGoals.map((goal) {
-            final category = GoalCategory.fromString(goal.category);
-            final color = AppTheme.parseHex(goal.colorHex);
-            final childCount =
-                allGoals.where((g) => g.parentGoalId == goal.id).length;
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Material(
-                color: AppTheme.tonalContainer(
-                  context,
-                  color,
-                  lightAlpha: 24,
-                  darkAlpha: 42,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(24),
-                  onTap: () => GoalEditorDialog.show(
-                    context,
-                    level: GoalLevel.semester,
-                    existing: goal,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
+                  const SizedBox(width: 20),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        GeminiGradientText(
+                          activeSemester?.name ?? '尚未创建学期',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          activeSemester == null
+                              ? '创建学期周期后自动计算当前教学周'
+                              : '${activeSemester.startDate}  →  ${activeSemester.endDate}',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: tokens.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
                           children: [
-                            CircleAvatar(
-                              radius: 19,
-                              backgroundColor: color.withAlpha(42),
-                              child:
-                                  Icon(category.icon, size: 20, color: color),
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              onPressed: () => _showSemesterDialog(
+                                context,
+                                ref,
+                                existing: activeSemester,
+                              ),
+                              icon: const Icon(Icons.edit_calendar_outlined,
+                                  size: 16),
+                              label: Text(
+                                activeSemester == null ? '新建学期' : '编辑周期',
+                              ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
+                            OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              onPressed: () => _showSemesterDialog(context, ref),
+                              icon: const Icon(Icons.add_rounded, size: 16),
+                              label: const Text('新增学期'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (semesters.length > 1) ...[
+              const SizedBox(height: 12),
+              GeminiGlassCard(
+                borderRadius: BorderRadius.circular(999),
+                blurSigma: 20,
+                backgroundColor: tokens.glassPill,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.swap_horiz_rounded,
+                        size: 18, color: tokens.textSecondary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: activeSemester?.id ?? semesters.first.id,
+                          isExpanded: true,
+                          items: semesters
+                              .map(
+                                (s) => DropdownMenuItem(
+                                  value: s.id,
+                                  child: Text(s.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) {
+                              ref
+                                  .read(semesterRepositoryProvider)
+                                  .setActiveSemester(v);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 18),
+
+            // 2. 28px 毛玻璃核心目标 OKR 容器
+            GeminiGlassCard(
+              borderRadius: BorderRadius.circular(28),
+              blurSigma: 24,
+              padding: const EdgeInsets.fromLTRB(22, 18, 22, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        '本学期核心目标 OKR (${semesterGoals.length})',
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          color: tokens.textSecondary,
+                        ),
+                      ),
+                      const Spacer(),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(999),
+                        onTap: () => GoalEditorDialog.show(
+                          context,
+                          level: GoalLevel.semester,
+                          defaultSemesterId: activeSemester?.id,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const GeminiSparkleIcon(size: 15),
+                              const SizedBox(width: 6),
+                              Text(
+                                '添加学期目标',
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (semesterGoals.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 22),
+                      child: Row(
+                        children: [
+                          M3ScallopBadge(
+                            size: 48,
+                            color: tokens.glassPill,
+                            child: const GeminiSparkleIcon(
+                              size: 20,
+                              animate: true,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '设定本学期的北极星目标',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: tokens.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '向下拆解为月度里程碑、周目标与日待办后，完成百分比将自动汇总推进',
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    color: tokens.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    ...List.generate(semesterGoals.length, (i) {
+                      final goal = semesterGoals[i];
+                      final category = GoalCategory.fromString(goal.category);
+                      final color = AppTheme.parseHex(goal.colorHex);
+                      final childCount = allGoals
+                          .where((g) => g.parentGoalId == goal.id)
+                          .length;
+
+                      return Column(
+                        children: [
+                          InkWell(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () => GoalEditorDialog.show(
+                              context,
+                              level: GoalLevel.semester,
+                              existing: goal,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 9, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: color.withAlpha(34),
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    child: Text(
-                                      '${category.label} OKR',
-                                      style: TextStyle(
-                                        color: color,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w800,
-                                      ),
+                                  M3ScallopBadge(
+                                    size: 46,
+                                    color: color.withAlpha(36),
+                                    child: Icon(
+                                      category.icon,
+                                      size: 21,
+                                      color: color,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    goal.title,
-                                    style:
-                                        theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w800,
+                                  const SizedBox(width: 15),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          goal.title,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: tokens.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          goal.description.isNotEmpty
+                                              ? '${category.label} · ${goal.description}'
+                                              : '${category.label}目标 · 已拆解 $childCount 项下级目标',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 13.5,
+                                            color: tokens.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        GoalProgressBar(
+                                          progress: goal.cachedProgress,
+                                          color: color,
+                                          height: 6,
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            if (childCount > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color:
-                                      theme.colorScheme.surfaceContainerLowest,
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  '$childCount 项子目标',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: color,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        if (goal.description.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            goal.description,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.hintColor,
-                            ),
                           ),
+                          if (i < semesterGoals.length - 1)
+                            Divider(
+                              height: 1,
+                              indent: 62,
+                              color: tokens.glassBorder,
+                            ),
                         ],
-                        const SizedBox(height: 14),
-                        GoalProgressBar(
-                          progress: goal.cachedProgress,
-                          color: color,
-                          height: 9,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                      );
+                    }),
+                ],
               ),
-            );
-          }),
-      ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -263,266 +387,111 @@ class SemesterPage extends ConsumerWidget {
 
     await showDialog<void>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: Text(existing == null ? '新建学期' : '编辑学期'),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const GoogleFourColorBar(height: 3),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: '学期名称',
-                    hintText: '如：2026-2027 第一学期',
+      barrierColor: Colors.black.withAlpha(110),
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: StatefulBuilder(
+          builder: (ctx, setState) => AlertDialog(
+            title: Text(existing == null ? '新建学期' : '编辑学期周期'),
+            content: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: '学期名称',
+                      hintText: '如：2026-2027 第一学期',
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            initialDate: startDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2035),
-                          );
-                          if (picked != null) {
-                            setState(() {
-                              startDate = picked;
-                              if (endDate.isBefore(startDate)) {
-                                endDate =
-                                    startDate.add(const Duration(days: 120));
-                              }
-                            });
-                          }
-                        },
-                        icon: const Icon(Icons.play_arrow_rounded, size: 17),
-                        label: Text(TermDateUtils.formatIsoDate(startDate)),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: ctx,
+                              initialDate: startDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2035),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                startDate = picked;
+                                if (endDate.isBefore(startDate)) {
+                                  endDate =
+                                      startDate.add(const Duration(days: 120));
+                                }
+                              });
+                            }
+                          },
+                          child: Text(TermDateUtils.formatIsoDate(startDate)),
+                        ),
                       ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: Text('至'),
-                    ),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            initialDate: endDate,
-                            firstDate: startDate,
-                            lastDate: DateTime(2035),
-                          );
-                          if (picked != null) {
-                            setState(() => endDate = picked);
-                          }
-                        },
-                        icon: const Icon(Icons.stop_rounded, size: 17),
-                        label: Text(TermDateUtils.formatIsoDate(endDate)),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('至'),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: ctx,
+                              initialDate: endDate,
+                              firstDate: startDate,
+                              lastDate: DateTime(2035),
+                            );
+                            if (picked != null) {
+                              setState(() => endDate = picked);
+                            }
+                          },
+                          child: Text(TermDateUtils.formatIsoDate(endDate)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: GeminiTokens.cobaltViolet,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () async {
+                  final name = nameController.text.trim();
+                  if (name.isEmpty) return;
+                  final repo = ref.read(semesterRepositoryProvider);
+                  if (existing == null) {
+                    await repo.createSemester(
+                      name: name,
+                      startDate: TermDateUtils.formatIsoDate(startDate),
+                      endDate: TermDateUtils.formatIsoDate(endDate),
+                    );
+                  } else {
+                    await repo.updateSemester(
+                      id: existing.id,
+                      name: name,
+                      startDate: TermDateUtils.formatIsoDate(startDate),
+                      endDate: TermDateUtils.formatIsoDate(endDate),
+                    );
+                  }
+                  if (ctx.mounted) Navigator.of(ctx).pop();
+                },
+                child: const Text('保存'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                if (name.isEmpty) return;
-                final repo = ref.read(semesterRepositoryProvider);
-                if (existing == null) {
-                  await repo.createSemester(
-                    name: name,
-                    startDate: TermDateUtils.formatIsoDate(startDate),
-                    endDate: TermDateUtils.formatIsoDate(endDate),
-                  );
-                } else {
-                  await repo.updateSemester(
-                    id: existing.id,
-                    name: name,
-                    startDate: TermDateUtils.formatIsoDate(startDate),
-                    endDate: TermDateUtils.formatIsoDate(endDate),
-                  );
-                }
-                if (ctx.mounted) Navigator.of(ctx).pop();
-              },
-              child: const Text('保存'),
-            ),
-          ],
         ),
       ),
     );
     nameController.dispose();
-  }
-}
-
-class _ActiveSemesterHeroCard extends StatelessWidget {
-  const _ActiveSemesterHeroCard({
-    required this.semester,
-    required this.allSemesters,
-    required this.onSwitch,
-    required this.onEdit,
-  });
-
-  final SemesterRow semester;
-  final List<SemesterRow> allSemesters;
-  final ValueChanged<String> onSwitch;
-  final VoidCallback onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    final start = TermDateUtils.parseIsoDate(semester.startDate);
-    final end = TermDateUtils.parseIsoDate(semester.endDate);
-    final today = TermDateUtils.dateOnly(DateTime.now());
-    final theme = Theme.of(context);
-
-    final currentWeek = TermDateUtils.teachingWeekIndex(
-      targetDate: today,
-      semesterStart: start,
-      weekStartsOn: semester.weekStartsOn,
-    );
-    final totalWeeks = TermDateUtils.totalTeachingWeeks(
-      semesterStart: start,
-      semesterEnd: end,
-      weekStartsOn: semester.weekStartsOn,
-    );
-
-    final totalDays = end.difference(start).inDays;
-    final elapsedDays = today.difference(start).inDays;
-    final timeProgress =
-        totalDays <= 0 ? 0.0 : (elapsedDays / totalDays).clamp(0.0, 1.0);
-
-    final weekStatusText = currentWeek < 1
-        ? '距离开学还有 ${start.difference(today).inDays} 天'
-        : currentWeek > totalWeeks
-            ? '本学期已圆满结束（共 $totalWeeks 教学周）'
-            : '第 $currentWeek / $totalWeeks 教学周';
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.tonalContainer(
-          context,
-          const Color(0xFFE37400),
-          lightAlpha: 26,
-          darkAlpha: 44,
-        ),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          const GoogleFourColorBar(height: 5),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                GoogleProgressRing(
-                  progress: timeProgress,
-                  size: 72,
-                  strokeWidth: 7.5,
-                  centerChild: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        currentWeek < 1
-                            ? '待开学'
-                            : 'W${currentWeek.clamp(1, totalWeeks)}',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Text(
-                        '${(timeProgress * 100).round()}%',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.hintColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 18),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: semester.id,
-                                isDense: true,
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                                items: allSemesters
-                                    .map(
-                                      (s) => DropdownMenuItem(
-                                        value: s.id,
-                                        child: Text(s.name),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (v) {
-                                  if (v != null && v != semester.id) {
-                                    onSwitch(v);
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: '编辑学期起止日期',
-                            onPressed: onEdit,
-                            icon: const Icon(Icons.edit_calendar_rounded),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${semester.startDate}  →  ${semester.endDate}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.hintColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerLowest,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          weekStatusText,
-                          style: const TextStyle(
-                            color: Color(0xFFE37400),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

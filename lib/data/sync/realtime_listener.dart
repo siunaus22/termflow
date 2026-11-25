@@ -9,6 +9,7 @@ class RealtimeSyncListener {
   final Future<void> Function() onRemoteChange;
 
   RealtimeChannel? _channel;
+  SupabaseClient? _boundClient;
   Timer? _debounce;
 
   static const _tables = [
@@ -21,6 +22,7 @@ class RealtimeSyncListener {
 
   void start(SupabaseClient client, String userId) {
     stop(client);
+    _boundClient = client;
 
     final channel = client.channel('termflow_sync_$userId');
     for (final table in _tables) {
@@ -48,16 +50,18 @@ class RealtimeSyncListener {
     });
   }
 
-  Future<void> stop(SupabaseClient? client) async {
+  Future<void> stop([SupabaseClient? client]) async {
     _debounce?.cancel();
     _debounce = null;
-    if (_channel != null && client != null) {
-      await client.removeChannel(_channel!);
+    final targetClient = client ?? _boundClient;
+    if (_channel != null && targetClient != null) {
+      await targetClient.removeChannel(_channel!);
     }
     _channel = null;
   }
 
-  void dispose(SupabaseClient? client) {
+  void dispose([SupabaseClient? client]) {
     stop(client);
+    _boundClient = null;
   }
 }

@@ -1,35 +1,30 @@
 import 'package:flutter/material.dart';
 
-/// Google Material You (Material 3 Expressive) 主题引擎
-/// 融合 Google 四原色、柔和色彩容器（Tonal Surfaces）、大圆角胶囊形态与动态种子色系统
+import '../constants/app_enums.dart';
+import 'gemini_tokens.dart';
+
+/// Material 3 × Google Gemini App 主题构建器
+/// 通过透明 Scaffold 画布让底层 GLSL 流体背景自然透出，配合 GeminiTokens 毛玻璃表面与高对比字阶
 class AppTheme {
   AppTheme._();
 
-  // Google 经典四原色
-  static const Color googleBlue = Color(0xFF4285F4);
-  static const Color googleRed = Color(0xFFEA4335);
-  static const Color googleYellow = Color(0xFFFBBC04);
-  static const Color googleGreen = Color(0xFF34A853);
-  static const Color googlePurple = Color(0xFF9334E6);
-  static const Color googleTeal = Color(0xFF12B5CB);
+  // 核心色彩别名（兼容业务组件引用）
+  static const Color googleBlue = GeminiTokens.electricBlue;
+  static const Color googleRed = GeminiTokens.roseAccent;
+  static const Color googleYellow = Color(0xFFF5B945);
+  static const Color googleGreen = GeminiTokens.mintSuccess;
+  static const Color googlePurple = GeminiTokens.softViolet;
+  static const Color googleTeal = GeminiTokens.cyanAccent;
 
-  static const List<Color> googleBrandColors = [
-    googleBlue,
-    googleRed,
-    googleYellow,
-    googleGreen,
-  ];
-
-  /// 供自定义标签选择的多彩 Google Keep / Calendar 调色盘
   static const List<(String name, String hex, Color color)> tagPalette = [
-    ('海湾蓝', '#1A73E8', Color(0xFF1A73E8)),
-    ('珊瑚红', '#EA4335', Color(0xFFEA4335)),
-    ('向日葵黄', '#F9AB00', Color(0xFFF9AB00)),
-    ('翡翠绿', '#34A853', Color(0xFF34A853)),
-    ('鸢尾紫', '#9334E6', Color(0xFF9334E6)),
-    ('湖水青', '#12B5CB', Color(0xFF12B5CB)),
-    ('蜜桃橙', '#FA7B17', Color(0xFFFA7B17)),
-    ('莓果粉', '#E52592', Color(0xFFE52592)),
+    ('电光蓝', '#4285F4', GeminiTokens.electricBlue),
+    ('钴蓝紫', '#6B7CFF', GeminiTokens.cobaltViolet),
+    ('紫罗兰', '#9B72CB', GeminiTokens.softViolet),
+    ('冰川青', '#4FACFE', GeminiTokens.cyanAccent),
+    ('星芒玫红', '#D96570', GeminiTokens.roseAccent),
+    ('雾凇绿', '#5BB98C', GeminiTokens.mintSuccess),
+    ('流金琥珀', '#E8A23A', Color(0xFFE8A23A)),
+    ('极夜靛青', '#5C6BC0', Color(0xFF5C6BC0)),
   ];
 
   static Color parseHex(String hex, {Color fallback = googleBlue}) {
@@ -37,189 +32,279 @@ class AppTheme {
     if (cleaned.length == 6) {
       final value = int.tryParse('FF$cleaned', radix: 16);
       if (value != null) {
-        // 将旧版冷灰蓝色标签自动映射为更明快的 Google 蓝
-        if (cleaned.toUpperCase() == '4F6BED') return const Color(0xFF1A73E8);
-        if (cleaned.toUpperCase() == '64748B') return const Color(0xFF12B5CB);
         return Color(value);
       }
     }
     return fallback;
   }
 
-  /// 根据目标/标签主色生成柔和的 Material You 浅色/深色容器底色
   static Color tonalContainer(
     BuildContext context,
     Color accent, {
-    int lightAlpha = 26,
-    int darkAlpha = 44,
+    int lightAlpha = 24,
+    int darkAlpha = 36,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tokens = GeminiTokens.of(context);
     return Color.alphaBlend(
-      accent.withAlpha(isDark ? darkAlpha : lightAlpha),
-      Theme.of(context).colorScheme.surfaceContainerLowest,
+      accent.withAlpha(tokens.isDark ? darkAlpha : lightAlpha),
+      tokens.glassSurface,
     );
   }
 
-  static ThemeData light({Color seedColor = const Color(0xFF1A73E8)}) {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: seedColor,
+  static ThemeData light({Color? seedColor}) {
+    final seed = seedColor ?? GoogleThemeSeed.geminiAurora.seedColor;
+    final base = ColorScheme.fromSeed(
+      seedColor: seed,
       brightness: Brightness.light,
-      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+      dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot,
     );
 
-    final tintedCanvas = Color.alphaBlend(
-      scheme.primary.withAlpha(12),
-      const Color(0xFFF8FAFD),
-    );
-    final sidebarBg = Color.alphaBlend(
-      scheme.primary.withAlpha(20),
-      const Color(0xFFF1F5FB),
+    const tokens = GeminiTokens.light;
+    final scheme = base.copyWith(
+      primary: const Color(0xFF1A73E8),
+      secondary: GeminiTokens.cobaltViolet,
+      tertiary: GeminiTokens.softViolet,
+      surface: tokens.baseCanvas,
+      onSurface: tokens.textPrimary,
+      onSurfaceVariant: tokens.textSecondary,
+      surfaceContainerLowest: const Color(0xD9FFFFFF),
+      surfaceContainerLow: const Color(0xC7F4F7FC),
+      surfaceContainer: tokens.glassSurface,
+      surfaceContainerHigh: tokens.glassPill,
+      surfaceContainerHighest: const Color(0xDDE2EAF6),
+      secondaryContainer: const Color(0x304285F4),
+      onSecondaryContainer: const Color(0xFF174EA6),
+      outline: const Color(0x330F172A),
+      outlineVariant: tokens.glassBorder,
     );
 
-    final colorScheme = scheme.copyWith(
-      surface: Colors.white,
-      surfaceContainerLowest: Colors.white,
-      surfaceContainerLow: tintedCanvas,
-      surfaceContainer: sidebarBg,
-    );
-
-    return _buildTheme(colorScheme, Brightness.light, tintedCanvas);
+    return _buildTheme(scheme, Brightness.light, tokens);
   }
 
-  static ThemeData dark({Color seedColor = const Color(0xFF1A73E8)}) {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: seedColor,
+  static ThemeData dark({Color? seedColor}) {
+    final seed = seedColor ?? GoogleThemeSeed.geminiAurora.seedColor;
+    final base = ColorScheme.fromSeed(
+      seedColor: seed,
       brightness: Brightness.dark,
       dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot,
     );
 
-    final darkCanvas = Color.alphaBlend(
-      scheme.primary.withAlpha(14),
-      const Color(0xFF111318),
-    );
-    final darkCard = Color.alphaBlend(
-      scheme.primary.withAlpha(20),
-      const Color(0xFF1A1D24),
-    );
-    final darkSidebar = Color.alphaBlend(
-      scheme.primary.withAlpha(26),
-      const Color(0xFF151820),
+    const tokens = GeminiTokens.dark;
+    final scheme = base.copyWith(
+      primary: const Color(0xFF8AB4F8),
+      secondary: const Color(0xFFA8B5FF),
+      tertiary: const Color(0xFFC59BF0),
+      surface: tokens.baseCanvas,
+      onSurface: tokens.textPrimary,
+      onSurfaceVariant: tokens.textSecondary,
+      surfaceContainerLowest: const Color(0xB818191D),
+      surfaceContainerLow: const Color(0xAD1A1B20),
+      surfaceContainer: tokens.glassSurface,
+      surfaceContainerHigh: tokens.glassPill,
+      surfaceContainerHighest: const Color(0xCC303440),
+      secondaryContainer: const Color(0x3D6B7CFF),
+      onSecondaryContainer: const Color(0xFFDCE4FF),
+      outline: const Color(0x38FFFFFF),
+      outlineVariant: tokens.glassBorder,
     );
 
-    final colorScheme = scheme.copyWith(
-      surface: darkCard,
-      surfaceContainerLowest: darkCard,
-      surfaceContainerLow: darkCanvas,
-      surfaceContainer: darkSidebar,
-    );
-
-    return _buildTheme(colorScheme, Brightness.dark, darkCanvas);
+    return _buildTheme(scheme, Brightness.dark, tokens);
   }
 
   static ThemeData _buildTheme(
     ColorScheme colorScheme,
     Brightness brightness,
-    Color scaffoldBg,
+    GeminiTokens tokens,
   ) {
-    final isDark = brightness == Brightness.dark;
+    final baseText = brightness == Brightness.dark
+        ? Typography.material2021().white
+        : Typography.material2021().black;
+
+    final textTheme = baseText
+        .apply(
+          bodyColor: tokens.textPrimary,
+          displayColor: tokens.textPrimary,
+          fontFamilyFallback: GeminiTokens.fontFallback,
+        )
+        .copyWith(
+          headlineLarge: TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.8,
+            height: 1.18,
+            color: tokens.textPrimary,
+            fontFamilyFallback: GeminiTokens.fontFallback,
+          ),
+          headlineSmall: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.4,
+            color: tokens.textPrimary,
+            fontFamilyFallback: GeminiTokens.fontFallback,
+          ),
+          titleLarge: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
+            color: tokens.textPrimary,
+            fontFamilyFallback: GeminiTokens.fontFallback,
+          ),
+          titleMedium: TextStyle(
+            fontSize: 16.5,
+            fontWeight: FontWeight.w600,
+            color: tokens.textPrimary,
+            fontFamilyFallback: GeminiTokens.fontFallback,
+          ),
+          bodyLarge: TextStyle(
+            fontSize: 15.5,
+            fontWeight: FontWeight.w400,
+            height: 1.45,
+            color: tokens.textPrimary,
+            fontFamilyFallback: GeminiTokens.fontFallback,
+          ),
+          bodyMedium: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            height: 1.45,
+            color: tokens.textPrimary,
+            fontFamilyFallback: GeminiTokens.fontFallback,
+          ),
+          bodySmall: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w400,
+            color: tokens.textSecondary,
+            fontFamilyFallback: GeminiTokens.fontFallback,
+          ),
+        );
 
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: scaffoldBg,
-      cardColor: colorScheme.surfaceContainerLowest,
-      dividerColor: colorScheme.outlineVariant.withAlpha(isDark ? 90 : 120),
+      textTheme: textTheme,
+      // Scaffold 默认透明，使根层 GeminiAmbientBackground 的液态极光自然透出
+      scaffoldBackgroundColor: Colors.transparent,
+      cardColor: tokens.glassSurface,
+      dividerColor: tokens.glassBorder,
+      extensions: <ThemeExtension<dynamic>>[tokens],
       appBarTheme: AppBarTheme(
-        backgroundColor: scaffoldBg,
-        foregroundColor: colorScheme.onSurface,
+        backgroundColor: Colors.transparent,
+        foregroundColor: tokens.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
+        toolbarHeight: 58,
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: colorScheme.surfaceContainerLowest,
+        margin: EdgeInsets.zero,
+        color: tokens.glassSurface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(tokens.cardRadius),
+          side: BorderSide(color: tokens.glassBorder, width: 1),
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: colorScheme.surfaceContainerLowest,
-        elevation: 3,
+        backgroundColor: tokens.isDark
+            ? const Color(0xEB1B1C21)
+            : const Color(0xF2FFFFFF),
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(tokens.heroRadius),
+          side: BorderSide(color: tokens.glassBorder, width: 1),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: tokens.isDark
+            ? const Color(0xEB18191E)
+            : const Color(0xF2F8FAFD),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          side: BorderSide(color: tokens.glassBorder, width: 1),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Color.alphaBlend(
-          colorScheme.primary.withAlpha(isDark ? 26 : 16),
-          colorScheme.surfaceContainerLowest,
-        ),
+        fillColor: tokens.glassPill,
+        hintStyle: TextStyle(color: tokens.textSecondary, fontSize: 14.5),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(22),
+          borderSide: BorderSide(color: tokens.glassBorder, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: colorScheme.outlineVariant.withAlpha(80),
-          ),
+          borderRadius: BorderRadius.circular(22),
+          borderSide: BorderSide(color: tokens.glassBorder, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+          borderRadius: BorderRadius.circular(22),
+          borderSide:
+              BorderSide(color: tokens.glassHighlightBorder, width: 1.4),
         ),
       ),
       chipTheme: ChipThemeData(
+        backgroundColor: tokens.glassPill,
         shape: const StadiumBorder(),
-        side: BorderSide(color: colorScheme.outlineVariant.withAlpha(90)),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        side: BorderSide(color: tokens.glassBorder, width: 1),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          elevation: 0,
           shape: const StadiumBorder(),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            fontFamilyFallback: GeminiTokens.fontFallback,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           shape: const StadiumBorder(),
-          side: BorderSide(color: colorScheme.outlineVariant),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          foregroundColor: tokens.textPrimary,
+          side: BorderSide(color: tokens.glassBorder, width: 1),
+          backgroundColor: tokens.glassSurface,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            fontFamilyFallback: GeminiTokens.fontFallback,
+          ),
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: colorScheme.surfaceContainerLowest,
-        foregroundColor: colorScheme.onSurface,
-        elevation: 3,
-        highlightElevation: 6,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        backgroundColor: tokens.glassElevated,
+        foregroundColor: tokens.textPrimary,
+        elevation: 0,
+        highlightElevation: 0,
+        shape: const StadiumBorder(),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 70,
+        height: 72,
         elevation: 0,
-        backgroundColor: colorScheme.surfaceContainer,
+        backgroundColor: Colors.transparent,
+        indicatorColor: colorScheme.secondaryContainer,
         indicatorShape: const StadiumBorder(),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
             fontSize: 12,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            color: selected ? tokens.textPrimary : tokens.textSecondary,
+            fontFamilyFallback: GeminiTokens.fontFallback,
           );
         }),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        backgroundColor:
+            tokens.isDark ? const Color(0xF0252730) : const Color(0xF01E222B),
+        contentTextStyle: const TextStyle(color: Colors.white, fontSize: 13.5),
+        shape: const StadiumBorder(),
       ),
     );
   }

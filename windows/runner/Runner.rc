@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.termflow" "\0"
-            VALUE "FileDescription", "termflow" "\0"
+            VALUE "CompanyName", "TermFlow" "\0"
+            VALUE "FileDescription", "TermFlow - Four-Level Planner" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "termflow" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.termflow. All rights reserved." "\0"
+            VALUE "InternalName", "TermFlow" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 TermFlow. All rights reserved." "\0"
             VALUE "OriginalFilename", "termflow.exe" "\0"
-            VALUE "ProductName", "termflow" "\0"
+            VALUE "ProductName", "TermFlow" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

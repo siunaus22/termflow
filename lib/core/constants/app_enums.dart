@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Google Material You 可选主题色板
+/// Gemini 核心主题变体
 enum GoogleThemeSeed {
-  googleBlue('google_blue', 'Google 经典蓝', Color(0xFF1A73E8)),
-  mintGreen('mint_green', '薄荷森绿', Color(0xFF1E8E3E)),
-  lavenderIris('lavender_iris', '星云鸢尾紫', Color(0xFF7C4DFF)),
-  sunsetCoral('sunset_coral', '落日珊瑚红', Color(0xFFE8453C)),
-  oceanTeal('ocean_teal', '海岸青碧', Color(0xFF00897B)),
-  amberGold('amber_gold', '暖阳琥珀金', Color(0xFFE37400));
+  geminiAurora('gemini_aurora', 'Gemini 星云蓝紫', Color(0xFF6B7CFF)),
+  electricBlue('electric_blue', '电光深海蓝', Color(0xFF4285F4)),
+  nebulaViolet('nebula_violet', '极光紫罗兰', Color(0xFF9B72CB)),
+  glacierCyan('glacier_cyan', '冰川浅青蓝', Color(0xFF4FACFE));
 
   const GoogleThemeSeed(this.key, this.label, this.seedColor);
   final String key;
@@ -17,14 +15,14 @@ enum GoogleThemeSeed {
   static GoogleThemeSeed fromKey(String k) =>
       GoogleThemeSeed.values.firstWhere(
         (e) => e.key == k,
-        orElse: () => GoogleThemeSeed.googleBlue,
+        orElse: () => GoogleThemeSeed.geminiAurora,
       );
 }
 
 enum GoalLevel {
-  semester('semester', '学期目标', Color(0xFFE37400)),
-  monthly('monthly', '月度目标', Color(0xFF1E8E3E)),
-  weekly('weekly', '周目标', Color(0xFF9334E6));
+  semester('semester', '学期目标', Color(0xFF9B72CB)),
+  monthly('monthly', '月度目标', Color(0xFF6B7CFF)),
+  weekly('weekly', '周目标', Color(0xFF4285F4));
 
   const GoalLevel(this.value, this.label, this.accentColor);
   final String value;
@@ -41,37 +39,37 @@ enum GoalCategory {
   academic(
     'academic',
     '学业',
-    Color(0xFF1A73E8),
-    '#1A73E8',
-    Icons.menu_book_rounded,
+    Color(0xFF4285F4),
+    '#4285F4',
+    Icons.school_outlined,
   ),
   project(
     'project',
     '项目',
-    Color(0xFF00897B),
-    '#00897B',
-    Icons.rocket_launch_rounded,
+    Color(0xFF4FACFE),
+    '#4FACFE',
+    Icons.rocket_launch_outlined,
   ),
   competition(
     'competition',
     '竞赛',
-    Color(0xFFF9AB00),
-    '#F9AB00',
-    Icons.emoji_events_rounded,
+    Color(0xFF9B72CB),
+    '#9B72CB',
+    Icons.emoji_events_outlined,
   ),
   life(
     'life',
     '生活',
-    Color(0xFF34A853),
-    '#34A853',
-    Icons.spa_rounded,
+    Color(0xFF5BB98C),
+    '#5BB98C',
+    Icons.spa_outlined,
   ),
   other(
     'other',
     '探索',
-    Color(0xFF9334E6),
-    '#9334E6',
-    Icons.auto_awesome_rounded,
+    Color(0xFFD96570),
+    '#D96570',
+    Icons.auto_awesome_outlined,
   );
 
   const GoalCategory(
@@ -94,10 +92,10 @@ enum GoalCategory {
 }
 
 enum TaskPriority {
-  p0(0, 'P0', '紧急重要', Color(0xFFEA4335)), // Google Red
-  p1(1, 'P1', '高优先级', Color(0xFFFA7B17)), // Google Orange/Amber
-  p2(2, 'P2', '中优先级', Color(0xFF4285F4)), // Google Blue
-  p3(3, 'P3', '轻松日常', Color(0xFF34A853)); // Google Green
+  p0(0, 'P0', '紧急重要', Color(0xFFD96570)),
+  p1(1, 'P1', '重要优先', Color(0xFF9B72CB)),
+  p2(2, 'P2', '常规推进', Color(0xFF4285F4)),
+  p3(3, 'P3', '轻松日常', Color(0xFF4FACFE));
 
   const TaskPriority(this.value, this.code, this.label, this.color);
   final int value;
@@ -119,31 +117,30 @@ enum SyncStatusValue {
   final String value;
 }
 
-/// 四级计划导航维度，每一级拥有专属 Google 主题色与空心/实心双态图标
 enum NavSection {
   daily(
     '日计划',
     Icons.wb_sunny_outlined,
     Icons.wb_sunny_rounded,
-    Color(0xFF1A73E8), // Google Blue
+    Color(0xFF4285F4),
   ),
   weekly(
     '周计划',
     Icons.view_week_outlined,
     Icons.view_week_rounded,
-    Color(0xFF9334E6), // Google Purple
+    Color(0xFF6B7CFF),
   ),
   monthly(
     '月计划',
     Icons.calendar_month_outlined,
     Icons.calendar_month_rounded,
-    Color(0xFF1E8E3E), // Google Green
+    Color(0xFF9B72CB),
   ),
   semester(
     '学期计划',
     Icons.school_outlined,
     Icons.school_rounded,
-    Color(0xFFE37400), // Google Amber
+    Color(0xFF4FACFE),
   );
 
   const NavSection(this.label, this.icon, this.selectedIcon, this.accentColor);

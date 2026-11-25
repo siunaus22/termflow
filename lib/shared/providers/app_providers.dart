@@ -78,6 +78,34 @@ final themeSeedProvider =
   return ThemeSeedNotifier(ref.watch(appConfigStoreProvider));
 });
 
+/// 动态流体背景无障碍开关
+class AmbientMotionNotifier extends StateNotifier<bool> {
+  AmbientMotionNotifier(this._store) : super(_store.ambientMotionEnabled);
+
+  final AppConfigStore _store;
+
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    await _store.setAmbientMotionEnabled(enabled);
+  }
+}
+
+final ambientMotionProvider =
+    StateNotifierProvider<AmbientMotionNotifier, bool>((ref) {
+  return AmbientMotionNotifier(ref.watch(appConfigStoreProvider));
+});
+
+/// Gemini 背景活跃联动状态：当聚焦主输入栏、打开新建弹窗或正在云端同步时平滑唤醒光晕
+final geminiFocusActiveProvider = StateProvider<bool>((ref) => false);
+final geminiFocusPointProvider =
+    StateProvider<Offset>((ref) => const Offset(0.5, 0.30));
+
+final geminiActivityProvider = Provider<bool>((ref) {
+  final inputActive = ref.watch(geminiFocusActiveProvider);
+  final syncPhase = ref.watch(syncControllerProvider).phase;
+  return inputActive || syncPhase == SyncUiPhase.syncing;
+});
+
 // ============================================================================
 // Supabase 连接与认证管理器（支持在设置页动态填写/更换 URL 与 Anon Key）
 // ============================================================================
@@ -376,7 +404,7 @@ class SyncController extends StateNotifier<SyncUiState> {
   void dispose() {
     _connectivitySub?.cancel();
     _periodicTimer?.cancel();
-    _realtime.dispose(_ref.read(supabaseManagerProvider.notifier).client);
+    _realtime.dispose();
     super.dispose();
   }
 }

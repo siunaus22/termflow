@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/gemini_tokens.dart';
+
+/// Gemini 顺滑阻尼进度条
 class GoalProgressBar extends StatelessWidget {
   const GoalProgressBar({
     super.key,
     required this.progress,
     required this.color,
-    this.height = 8,
+    this.height = 6,
     this.showPercentage = true,
   });
 
@@ -16,6 +19,7 @@ class GoalProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = GeminiTokens.of(context);
     final clamped = progress.clamp(0.0, 1.0);
     final pct = (clamped * 100).round();
 
@@ -26,12 +30,12 @@ class GoalProgressBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(height),
             child: TweenAnimationBuilder<double>(
               tween: Tween<double>(begin: 0, end: clamped),
-              duration: const Duration(milliseconds: 360),
-              curve: Curves.easeOutCubic,
+              duration: GeminiTokens.mediumDuration,
+              curve: GeminiTokens.springCurve,
               builder: (context, val, _) => LinearProgressIndicator(
                 value: val,
                 minHeight: height,
-                backgroundColor: color.withAlpha(38),
+                backgroundColor: tokens.glassBorder,
                 valueColor: AlwaysStoppedAnimation<Color>(color),
               ),
             ),
@@ -39,19 +43,12 @@ class GoalProgressBar extends StatelessWidget {
         ),
         if (showPercentage) ...[
           const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: color.withAlpha(28),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '$pct%',
-              textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                  ),
+          Text(
+            '$pct%',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: tokens.textSecondary,
             ),
           ),
         ],

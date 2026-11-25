@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/gemini_tokens.dart';
 import '../providers/app_providers.dart';
+import 'gemini_components.dart';
 
-/// Google Material You 胶囊风格云端同步指示器
+/// Gemini 毛玻璃胶囊同步状态指示器（同步时触发四角星芒旋转微动效）
 class SyncIndicator extends ConsumerWidget {
   const SyncIndicator({super.key, this.compact = false});
 
@@ -15,36 +16,39 @@ class SyncIndicator extends ConsumerWidget {
     final syncState = ref.watch(syncControllerProvider);
     final authState = ref.watch(supabaseManagerProvider);
     final pendingCount = ref.watch(pendingChangeCountProvider).valueOrNull ?? 0;
+    final tokens = GeminiTokens.of(context);
 
-    final Color accentColor;
+    final bool isSyncing = syncState.phase == SyncUiPhase.syncing;
+    final Color statusColor;
     final IconData statusIcon;
     final String label;
 
     if (!authState.isLoggedIn) {
-      accentColor = pendingCount > 0 ? AppTheme.googleBlue : AppTheme.googleTeal;
-      statusIcon = Icons.cloud_off_rounded;
-      label = pendingCount > 0 ? '本地离线 ($pendingCount)' : '离线就绪';
+      statusColor = tokens.textSecondary;
+      statusIcon = Icons.cloud_off_outlined;
+      label = pendingCount > 0 ? '离线缓存 ($pendingCount)' : '离线就绪';
     } else {
       switch (syncState.phase) {
         case SyncUiPhase.syncing:
-          accentColor = AppTheme.googleYellow;
+          statusColor = GeminiTokens.cobaltViolet;
           statusIcon = Icons.sync_rounded;
-          label = '正在云端同步...';
+          label = '云端同步中...';
         case SyncUiPhase.error:
-          accentColor = AppTheme.googleRed;
+          statusColor = GeminiTokens.roseAccent;
           statusIcon = Icons.error_outline_rounded;
-          label = '同步失败 · 点此重试';
+          label = '同步异常 · 点此重试';
         case SyncUiPhase.success:
         case SyncUiPhase.idle:
-          accentColor =
-              pendingCount > 0 ? AppTheme.googleYellow : AppTheme.googleGreen;
+          statusColor = pendingCount > 0
+              ? GeminiTokens.cyanAccent
+              : GeminiTokens.mintSuccess;
           statusIcon = pendingCount > 0
               ? Icons.cloud_upload_outlined
-              : Icons.cloud_done_rounded;
-          label = pendingCount > 0 ? '$pendingCount 项待上传' : '云端实时已同步';
+              : Icons.cloud_done_outlined;
+          label = pendingCount > 0 ? '$pendingCount 项待同步' : '云端已同步';
         case SyncUiPhase.offline:
-          accentColor = AppTheme.googleTeal;
-          statusIcon = Icons.cloud_off_rounded;
+          statusColor = tokens.textSecondary;
+          statusIcon = Icons.cloud_off_outlined;
           label = '离线就绪';
       }
     }
@@ -52,90 +56,80 @@ class SyncIndicator extends ConsumerWidget {
     if (compact) {
       return Tooltip(
         message: syncState.errorMessage ?? syncState.lastSummary ?? label,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(999),
-            onTap: syncState.phase == SyncUiPhase.syncing
-                ? null
-                : () => ref.read(syncControllerProvider.notifier).syncNow(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: accentColor.withAlpha(28),
-                borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: isSyncing
+              ? null
+              : () => ref.read(syncControllerProvider.notifier).syncNow(),
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+            decoration: BoxDecoration(
+              color: tokens.glassPill,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: isSyncing
+                    ? tokens.glassHighlightBorder
+                    : tokens.glassBorder,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (syncState.phase == SyncUiPhase.syncing)
-                    SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: accentColor,
-                      ),
-                    )
-                  else
-                    Icon(statusIcon, size: 16, color: accentColor),
-                  if (pendingCount > 0) ...[
-                    const SizedBox(width: 4),
-                    Text(
-                      '$pendingCount',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: accentColor,
-                      ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isSyncing)
+                  const GeminiSparkleIcon(size: 15, spin: true, animate: true)
+                else
+                  Icon(statusIcon, size: 16, color: statusColor),
+                if (pendingCount > 0) ...[
+                  const SizedBox(width: 5),
+                  Text(
+                    '$pendingCount',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: tokens.textPrimary,
                     ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         ),
       );
     }
 
-    return Material(
-      color: AppTheme.tonalContainer(context, accentColor, lightAlpha: 28),
+    return GeminiGlassCard(
       borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: syncState.phase == SyncUiPhase.syncing
-            ? null
-            : () => ref.read(syncControllerProvider.notifier).syncNow(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(
-            children: [
-              if (syncState.phase == SyncUiPhase.syncing)
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: accentColor,
-                  ),
-                )
-              else
-                Icon(statusIcon, size: 18, color: accentColor),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: accentColor,
-                      ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+      blurSigma: 18,
+      isHighlighted: isSyncing,
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      onTap: isSyncing
+          ? null
+          : () => ref.read(syncControllerProvider.notifier).syncNow(),
+      child: Row(
+        children: [
+          if (isSyncing)
+            const GeminiSparkleIcon(size: 17, spin: true, animate: true)
+          else
+            Icon(statusIcon, size: 18, color: statusColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: tokens.textPrimary,
               ),
-              Icon(Icons.refresh_rounded, size: 16, color: accentColor),
-            ],
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-        ),
+          Icon(
+            Icons.refresh_rounded,
+            size: 16,
+            color: tokens.textSecondary,
+          ),
+        ],
       ),
     );
   }
